@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 using Assets.Scripts.Runtime.Adapters;
 using Assets.Scripts.Runtime.Road.Generators;
@@ -23,12 +24,35 @@ namespace Assets.Scripts.Runtime.City
         [SerializeField] private int _seed = 0;
         [SerializeField] private int _maxBacktracks = 1000;
 
-        [Header("Nuclei (Organic only)")]
+        [Header("Nuclei")]
         [SerializeField] private CityNucleus[] _nuclei;
 
         [Header("Voronoi (Organic only)")]
         [SerializeField] private int _voronoiResolution = 256;
         [SerializeField] private float _voronoiCellSize = 40f;
+
+
+        [Header("Street")]
+        [SerializeField] private bool _generateStreets = true;
+        [SerializeField] private Material _streetMaterial;
+        [SerializeField] private int _connectionsPerComponent = 2;
+
+        [Header("Metro")]
+        [SerializeField] private bool _generateMetro = true;
+        [SerializeField] private Material _metroMaterial;
+        [SerializeField][Range(0f, 2f)] private float _metroBearingPenalty = 0.6f;
+        [SerializeField] private float _metroStationInterval = 80f;
+        [SerializeField] private Material _metroStationMaterial;
+
+        [Header("Terrain")]
+        [SerializeField] private TerrainAdapter _terrainAdapter;
+
+        [Header("Mesh")]
+        [SerializeField] private int _meshResolution = 20;
+        [SerializeField] private float _bridgeHeightThreshold = 1f;
+        [SerializeField] private float _tunnelHeightThreshold = 1f;
+        [SerializeField] private RoadSettings _roadSettings;
+
         private int VoronoiSiteCount
         {
             get
@@ -40,45 +64,9 @@ namespace Assets.Scripts.Runtime.City
                 return countW * countH;
             }
         }
-
-        [Header("Boulevard")]
-        [SerializeField] private bool _generateBoulevards = true;
-        [SerializeField] private float _minBoulevardLength = 40f;
-        [SerializeField] private int _connectionsPerNucleus = 2;
-        [SerializeField] private Material _boulevardMaterial;
-        [SerializeField]
-        [Range(0f, 2f)]
-        private float _boulevardBearingPenalty = 0.6f;
-
-        [Header("Street")]
-        [SerializeField] private bool _generateStreets = true;
-        [SerializeField] private Material _streetMaterial;
-        [SerializeField] private Material _bridgeMaterial;
-        [SerializeField] private Material _tunnelMaterial;
-        [SerializeField] private int _connectionsPerComponent = 2;
-
-        [Header("Metro")]
-        [SerializeField] private bool _generateMetro = true;
-        [SerializeField] private int _metroSeed = 2;
-        [SerializeField] private Material _metroMaterial;
-
-        [Header("Terrain")]
-        [SerializeField] private TerrainAdapter _terrainAdapter;
-
-        [Header("Mesh")]
-        [SerializeField] private int _meshResolution = 20;
-        [SerializeField] private float _bridgeHeightThreshold = 1f;
-        [SerializeField] private float _tunnelHeightThreshold = 1f;
-
-        public int ConnectionsPerComponent => _connectionsPerComponent;
-        public WFCSolver StreetSolver { get; private set; }
-        public VoronoiWFCSolver VoronoiStreetSolver { get; private set; }
-        public int VoronoiResolution => _voronoiResolution;
-        public WFCSolver MetroSolver { get; private set; }
-        public SolveResult LastResult { get; private set; }
-        public int CollapseCount => StreetSolver?.CollapseCount ?? 0;
-        public int BacktrackCount => StreetSolver?.BacktrackCount ?? 0;
-        public float BoulevardBearingPenalty => _boulevardBearingPenalty;
+        public RoadSettings RoadSettings => _roadSettings;
+        public float MetroStationInterval => _metroStationInterval;
+        public Material MetroStationMaterial => _metroStationMaterial;
         public int Rows => _rows;
         public int Columns => _columns;
         public float CellSize => _cellSize;
@@ -86,30 +74,29 @@ namespace Assets.Scripts.Runtime.City
         public int Seed => _seed;
         public int MaxBacktracks => _maxBacktracks;
         public CityNucleus[] Nuclei => _nuclei;
-        public bool GenerateBoulevards => _generateBoulevards;
-        public float MinBoulevardLength => _minBoulevardLength;
-        public int MaxBoulevards => _connectionsPerNucleus;
+        public int VoronoiResolution => _voronoiResolution;
         public bool GenerateStreets => _generateStreets;
         public bool GenerateMetro => _generateMetro;
-        public int MetroSeed => _metroSeed;
+        public float MetroBearingPenalty => _metroBearingPenalty;
+        public int ConnectionsPerComponent => _connectionsPerComponent;
         public int MeshResolution => _meshResolution;
         public float BridgeHeightThreshold => _bridgeHeightThreshold;
         public float TunnelHeightThreshold => _tunnelHeightThreshold;
-        public Material BoulevardMaterial => _boulevardMaterial;
         public Material StreetMaterial => _streetMaterial;
-        public Material BridgeMaterial => _bridgeMaterial;
-        public Material TunnelMaterial => _tunnelMaterial;
         public Material MetroMaterial => _metroMaterial;
         public TerrainAdapter TerrainAdapter => _terrainAdapter;
 
-        private readonly List<GameObject> _generated = new();
+        public WFCSolver StreetSolver { get; private set; }
+        public VoronoiWFCSolver VoronoiStreetSolver { get; private set; }
+        public SolveResult LastResult { get; private set; }
+        public int CollapseCount => StreetSolver?.CollapseCount ?? 0;
+        public int BacktrackCount => StreetSolver?.BacktrackCount ?? 0;
 
         private SplineRoadGenerator _splineGenerator;
 
-        private void Awake()
-        {
-            _splineGenerator = GetComponent<SplineRoadGenerator>();
-        }
+        private SplineRoadGenerator SplineGenerator =>
+            _splineGenerator ??= new SplineRoadGenerator(this);
+
 
         [ContextMenu("Generate City")]
         public void Generate()
@@ -118,24 +105,21 @@ namespace Assets.Scripts.Runtime.City
             SolveStreets();
 
             if (LastResult == SolveResult.Success)
-            {
-                var splineGen = GetComponent<SplineRoadGenerator>();
-                if (splineGen != null)
-                {
-                    splineGen.Generate();
-                }
-                else
-                {
-                    Debug.LogWarning("[CityManager] No SplineRoadGenerator found on this GameObject.");
-                }
-            }
+                SplineGenerator.Generate();
+        }
+
+        public void RegenerateMeshes()
+        {
+            SplineGenerator.Clear();
+            _splineGenerator = new SplineRoadGenerator(this);
+            _splineGenerator.Generate();
         }
 
         [ContextMenu("Clear City")]
         public void Clear()
         {
             ClearGenerated();
-            GetComponent<SplineRoadGenerator>()?.Clear();
+            SplineGenerator.Clear();
         }
 
         public void SolveStreets()
@@ -159,17 +143,14 @@ namespace Assets.Scripts.Runtime.City
             StreetSolver = new WFCSolver(tileSet, _rows, _columns, _seed, _maxBacktracks);
 
             if (_nuclei != null && _nuclei.Length > 0)
-            {
                 NucleusConstraintApplier.Apply(StreetSolver, _nuclei, _rows, _columns, _cellSize);
-            }
 
             if (_terrainAdapter != null)
-            {
                 _terrainAdapter.ApplyTerrainConstraints(StreetSolver, _rows, _columns, _cellSize);
-            }
 
             LastResult = StreetSolver.Solve();
-            Debug.Log($"[CityManager] Street WFC {LastResult} | Collapses: {CollapseCount} | Backtracks: {BacktrackCount}");
+            Debug.Log($"[CityManager] Street WFC {LastResult} | " +
+                      $"Collapses: {CollapseCount} | Backtracks: {BacktrackCount}");
         }
 
         private void SolveOrganicVoronoi(TileSet tileSet)
@@ -183,13 +164,13 @@ namespace Assets.Scripts.Runtime.City
             VoronoiStreetSolver = new VoronoiWFCSolver(tileSet, cells, _seed, _maxBacktracks);
 
             if (_terrainAdapter != null)
-            {
                 _terrainAdapter.ApplyTerrainConstraintsVoronoi(VoronoiStreetSolver);
-            }
 
             var result = VoronoiStreetSolver.Solve();
             LastResult = result == SolveResult.Success ? SolveResult.Success : SolveResult.Failure;
-            Debug.Log($"[CityManager] Voronoi WFC {LastResult} | Collapses: {VoronoiStreetSolver.CollapseCount} | Backtracks: {VoronoiStreetSolver.BacktrackCount}");
+            Debug.Log($"[CityManager] Voronoi WFC {LastResult} | " +
+                      $"Collapses: {VoronoiStreetSolver.CollapseCount} | " +
+                      $"Backtracks: {VoronoiStreetSolver.BacktrackCount}");
         }
 
         private Vector2[] GenerateVoronoiSites(int count, float worldW, float worldH)
@@ -198,8 +179,8 @@ namespace Assets.Scripts.Runtime.City
             var sites = new List<Vector2>();
             float minDist = _voronoiCellSize * 0.8f;
             int maxAttempts = 30;
-
             int attempts = 0;
+
             while (sites.Count < count && attempts < count * maxAttempts)
             {
                 attempts++;
@@ -209,15 +190,10 @@ namespace Assets.Scripts.Runtime.City
 
                 bool tooClose = false;
                 foreach (var s in sites)
-                {
                     if (Vector2.Distance(candidate, s) < minDist)
                     { tooClose = true; break; }
-                }
 
-                if (!tooClose)
-                {
-                    sites.Add(candidate);
-                }
+                if (!tooClose) sites.Add(candidate);
             }
 
             return sites.ToArray();
@@ -225,22 +201,22 @@ namespace Assets.Scripts.Runtime.City
 
         private void ClearGenerated()
         {
-            foreach (var go in _generated)
-            {
-                if (go == null)
-                {
-                    continue;
-                }
+            var children = new List<Transform>();
+            foreach (Transform child in transform)
+                children.Add(child);
+
 #if UNITY_EDITOR
-                if (!Application.isPlaying)
-                {
-                    DestroyImmediate(go);
-                }
-                else
-#endif
-                    Destroy(go);
+            if (!Application.isPlaying)
+            {
+                foreach (var child in children.Where(c => c != null))
+                    DestroyImmediate(child.gameObject);
             }
-            _generated.Clear();
+            else
+#endif
+            {
+                foreach (var child in children.Where(c => c != null))
+                    Destroy(child.gameObject);
+            }
         }
     }
 }

@@ -25,20 +25,32 @@ namespace Assets.Scripts.Runtime.Graph
     {
         private const int MinComponentSize = 10;
         private const float MaxStitchDistance = 500f;
+        private const int TerrainSamples = 10;
+        private const float MinStitchAngleDegrees = 25f;
 
         public static List<RoadConnection> ConnectComponents(
-           RoadGraph graph,
-           float bridgeHeightThreshold = 8f,
-           float tunnelHeightThreshold = 5f,
-           TerrainAdapter terrain = null,
-           int connectionsPerComponent = 1)
+            RoadGraph graph,
+            float bridgeHeightThreshold = 8f,
+            float tunnelHeightThreshold = 5f,
+            TerrainAdapter terrain = null,
+            int connectionsPerComponent = 1)
         {
             var connections = new List<RoadConnection>();
             PruneSmallComponents(graph);
 
+            var adj = new Dictionary<RoadNode, List<RoadNode>>();
+            foreach (var node in graph.Nodes) adj[node] = new List<RoadNode>();
+            foreach (var edge in graph.Edges)
+            {
+                adj[edge.From].Add(edge.To);
+                adj[edge.To].Add(edge.From);
+            }
+
             var connCount = new Dictionary<RoadNode, int>();
-            foreach (var node in graph.Nodes)
+            foreach (var node in graph.Nodes) 
                 connCount[node] = 0;
+
+            var blocked = new HashSet<(RoadNode, RoadNode)>();
 
             while (true)
             {
@@ -72,12 +84,14 @@ namespace Assets.Scripts.Runtime.Graph
                         {
                             foreach (var b in significant[j])
                             {
+                                if (blocked.Contains((a, b))) continue;
+
                                 float d = Vector3.Distance(a.Position, b.Position);
                                 if (d >= MaxStitchDistance) continue;
+
                                 float normDist = d / MaxStitchDistance;
                                 float roadMidY = (a.Position.y + b.Position.y) * 0.5f;
-                                float terrainMidH = SampleMaxHeight(
-                                    a.Position, b.Position, terrain);
+                                float terrainMidH = SampleMaxHeight(a.Position, b.Position, terrain);
                                 float terrainBonus = (terrainMidH - roadMidY) * 0.001f;
                                 float score = (1f - normDist) + terrainBonus;
 
@@ -96,14 +110,25 @@ namespace Assets.Scripts.Runtime.Graph
 
                 if (bestA == null) break;
 
+                if (!StitchAngleAcceptable(bestA, bestB, adj))
+                {
+                    blocked.Add((bestA, bestB));
+                    blocked.Add((bestB, bestA));
+                    continue;
+                }
+
                 ConnectionType connType = Classify(
                     bestA.Position, bestB.Position,
                     bridgeHeightThreshold, tunnelHeightThreshold, terrain);
 
                 graph.AddEdge(bestA, bestB, bestA.Type);
+
+                adj[bestA].Add(bestB);
+                adj[bestB].Add(bestA);
+
                 connections.Add(new RoadConnection(bestA, bestB, connType));
 
-                Debug.Log($"[RoadGraphConnector] Stitched component {bestI}({significant[bestI].Count}) " +
+                Debug.Log($"[RoadGraphConnector] Stitched {bestI}({significant[bestI].Count}) " +
                           $"-> {bestJ}({significant[bestJ].Count}) | " +
                           $"dist={Vector3.Distance(bestA.Position, bestB.Position):F1} | type={connType}");
 
@@ -119,6 +144,29 @@ namespace Assets.Scripts.Runtime.Graph
 
             return connections;
         }
+
+        private static bool StitchAngleAcceptable(
+            RoadNode a,
+            RoadNode b,
+            Dictionary<RoadNode, List<RoadNode>> adj)
+        {
+            Vector3 dir = (b.Position - a.Position).normalized;
+
+            if (adj.TryGetValue(a, out var aNbs))
+                foreach (var nb in aNbs)
+                    if (Vector3.Angle(dir, (nb.Position - a.Position).normalized)
+                        < MinStitchAngleDegrees)
+                        return false;
+
+            if (adj.TryGetValue(b, out var bNbs))
+                foreach (var nb in bNbs)
+                    if (Vector3.Angle(-dir, (nb.Position - b.Position).normalized)
+                        < MinStitchAngleDegrees)
+                        return false;
+
+            return true;
+        }
+
         private static void PruneSmallComponents(RoadGraph graph)
         {
             var components = FindComponents(graph);
@@ -163,7 +211,7 @@ namespace Assets.Scripts.Runtime.Graph
                 return ConnectionType.Bridge;
             }
 
-            return ConnectionType.Road;
+                return ConnectionType.Road;
         }
 
         private static float SampleMaxHeight(Vector3 a, Vector3 b, TerrainAdapter terrain)
@@ -174,9 +222,9 @@ namespace Assets.Scripts.Runtime.Graph
             }
 
             float max = float.MinValue;
-            for (int i = 0; i <= 4; i++)
+            for (int i = 0; i <= TerrainSamples; i++)
             {
-                Vector3 p = Vector3.Lerp(a, b, i / 4f);
+                Vector3 p = Vector3.Lerp(a, b, i / (float)TerrainSamples);
                 max = Mathf.Max(max, terrain.SampleHeight(p.x, p.z));
             }
             return max;
@@ -189,7 +237,7 @@ namespace Assets.Scripts.Runtime.Graph
             {
                 adj[node] = new List<RoadNode>();
             }
-
+            
             foreach (var edge in graph.Edges)
             {
                 adj[edge.From].Add(edge.To);

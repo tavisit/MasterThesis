@@ -16,7 +16,7 @@ namespace Assets.Scripts.Runtime.Voronoi
             VoronoiWFCSolver solver,
             TerrainAdapter terrain,
             RoadType type,
-            float yOffset = 1.0f)
+            float yOffset = 0.0f)
         {
             var graph = new RoadGraph();
             var nodeMap = new Dictionary<int, RoadNode>();

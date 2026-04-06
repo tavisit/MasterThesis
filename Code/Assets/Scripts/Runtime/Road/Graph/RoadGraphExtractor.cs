@@ -17,7 +17,7 @@ namespace Assets.Scripts.Runtime.Graph
             TerrainAdapter terrain,
             RoadType type,
             Socket socket,
-            float yOffset = 1.0f)
+            float yOffset = 0.0f)
         {
             var graph = new RoadGraph();
             var nodeGrid = new RoadNode[rows, columns];

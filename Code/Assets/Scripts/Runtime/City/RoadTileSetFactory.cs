@@ -75,26 +75,5 @@ namespace Assets.Scripts.Runtime.City
                 new TileDefinition("metro_corner_sw", "Tile_Metro_Corner_SW", none,  none,  metro, metro, weight: 0.2),
             });
         }
-        public static TileSet CreateBoulevard()
-        {
-            var road = RoadSockets.Road;
-            var none = RoadSockets.None;
-
-            return new TileSet(new List<TileDefinition>
-            {
-                new TileDefinition("empty",     "Tile_Empty",     none, none, none, none, weight: 2.0),
-                new TileDefinition("road_ns",   "Tile_Road_NS",   road, none, road, none, weight: 4.0),
-                new TileDefinition("road_ew",   "Tile_Road_EW",   none, road, none, road, weight: 4.0),
-                new TileDefinition("corner_ne", "Tile_Corner_NE", road, road, none, none, weight: 0.3),
-                new TileDefinition("corner_nw", "Tile_Corner_NW", road, none, none, road, weight: 0.3),
-                new TileDefinition("corner_se", "Tile_Corner_SE", none, road, road, none, weight: 0.3),
-                new TileDefinition("corner_sw", "Tile_Corner_SW", none, none, road, road, weight: 0.3),
-                new TileDefinition("t_nse",     "Tile_T_NSE",     road, road, road, none, weight: 0.15),
-                new TileDefinition("t_nsw",     "Tile_T_NSW",     road, none, road, road, weight: 0.15),
-                new TileDefinition("t_new",     "Tile_T_NEW",     road, road, none, road, weight: 0.15),
-                new TileDefinition("t_sew",     "Tile_T_SEW",     none, road, road, road, weight: 0.15),
-                new TileDefinition("cross",     "Tile_Cross",     road, road, road, road, weight: 0.05),
-            });
-        }
     }
 }

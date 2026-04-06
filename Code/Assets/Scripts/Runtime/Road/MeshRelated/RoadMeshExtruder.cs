@@ -1,4 +1,5 @@
-﻿using Assets.Scripts.Runtime.Graph;
+﻿using Assets.Scripts.Runtime.City;
+using Assets.Scripts.Runtime.Graph;
 
 using UnityEngine;
 using UnityEngine.Splines;
@@ -8,31 +9,32 @@ namespace Assets.Scripts.Runtime.MeshRelated
     [RequireComponent(typeof(SplineContainer))]
     [RequireComponent(typeof(MeshFilter))]
     [RequireComponent(typeof(MeshRenderer))]
+    [ExecuteAlways]
     public sealed class RoadMeshExtruder : MonoBehaviour
     {
         [SerializeField] private RoadType _type = RoadType.Street;
         [SerializeField] private int _resolution = 1;
         [SerializeField] private Material _roadMaterial;
+        [SerializeField] private RoadSettings _roadSettings;
 
         public RoadType RoadType { get => _type; set => _type = value; }
         public int Resolution { get => _resolution; set => _resolution = value; }
+        public RoadSettings RoadSettings
+        {
+            get => _roadSettings;
+            set => _roadSettings = value;
+        }
         public Material RoadMaterial
         {
             get => _roadMaterial;
-            set
-            {
-                _roadMaterial = value; if (_renderer)
-                {
-                    _renderer.sharedMaterial = value;
-                }
-            }
+            set { _roadMaterial = value; if (_renderer) _renderer.sharedMaterial = value; }
         }
 
-        public static readonly float[] HalfWidths = { 4.0f, 7.0f, 2.5f }; // Street, Boulevard, Metro
-
-        public static float GetHalfWidth(RoadType t) => HalfWidths[Mathf.Clamp((int)t, 0, HalfWidths.Length - 1)];
-        private static readonly float[] _kerbHeights = { 0.15f, 0.2f, 0.25f };
-        private static readonly float[] _kerbWidths = { 0.4f, 0.6f, 0.3f };
+        public static float GetHalfWidth(RoadType t, RoadSettings settings)
+        {
+            if (settings != null) return settings.GetHalfWidth(t);
+            return 4.0f;
+        }
 
         private SplineContainer _container;
         private MeshFilter _filter;
@@ -43,33 +45,43 @@ namespace Assets.Scripts.Runtime.MeshRelated
             _container = GetComponent<SplineContainer>();
             _filter = GetComponent<MeshFilter>();
             _renderer = GetComponent<MeshRenderer>();
-            if (_roadMaterial != null)
+
+            if (_roadSettings == null)
             {
-                _renderer.sharedMaterial = _roadMaterial;
+                var cityManager = FindFirstObjectByType<CityManager>();
+                if (cityManager != null)
+                    _roadSettings = cityManager.RoadSettings;
             }
+
+            if (_roadMaterial != null)
+                _renderer.sharedMaterial = _roadMaterial;
         }
 
         private void Start() => Rebuild();
 
         public void Rebuild()
         {
-            if (_container == null || _container.Spline == null)
+            if (_roadSettings == null)
+                _roadSettings = FindFirstObjectByType<CityManager>()?.RoadSettings;
+
+            if (_roadSettings == null)
             {
+                Debug.LogError($"[RoadMeshExtruder] RoadSettings not assigned on " +
+                               $"{gameObject.name}. Aborting rebuild.");
                 return;
             }
+
+            if (_container == null || _container.Spline == null) return;
 
             var spline = _container.Spline;
-            int idx = Mathf.Clamp((int)_type, 0, HalfWidths.Length - 1);
-            float hw = HalfWidths[idx];
-            float kerbH = _kerbHeights[idx];
-            float kerbW = _kerbWidths[idx];
+            float hw = _roadSettings.GetHalfWidth(_type);
+            float kerbH = _roadSettings.GetKerbHeight(_type);
+            float kerbW = _roadSettings.GetKerbWidth(_type);
             float length = spline.GetLength();
 
-            if (length <= 0f)
-            {
-                return;
-            }
+            if (length <= 0f) return;
 
+            float camber = kerbH * 0.5f;
             int rings = Mathf.Max(2, Mathf.CeilToInt(length / _resolution));
             int vPerRing = 7;
             int quadsPerSeg = 6;
@@ -84,28 +96,33 @@ namespace Assets.Scripts.Runtime.MeshRelated
                 spline.Evaluate(t, out var pos, out var tangent, out var upVec);
 
                 Vector3 p = pos;
-                Vector3 right = Vector3.Cross(
-                    ((Vector3)tangent).normalized,
-                    ((Vector3)upVec).normalized
-                ).normalized;
-                Vector3 up = ((Vector3)upVec).normalized * kerbH;
+                Vector3 tang = ((Vector3)tangent).normalized;
+                Vector3 up = ((Vector3)upVec).normalized;
+                Vector3 right = Vector3.Cross(up, tang).normalized;
 
+                if (right.sqrMagnitude < 0.01f)
+                {
+                    Vector3 worldRight = Vector3.right;
+                    if (Mathf.Abs(Vector3.Dot(tang, worldRight)) > 0.99f)
+                        worldRight = Vector3.forward;
+                    right = Vector3.Cross(up, worldRight).normalized;
+                }
+
+                Vector3 kerbUp = up * kerbH;
                 int b = i * vPerRing;
                 float v = t * length;
 
                 verts[b + 0] = p - right * (hw + kerbW);
-                verts[b + 1] = p - right * hw + up;
+                verts[b + 1] = p - right * hw + kerbUp;
                 verts[b + 2] = p - right * hw;
-                verts[b + 3] = p;
+                verts[b + 3] = p + up * camber;
                 verts[b + 4] = p + right * hw;
-                verts[b + 5] = p + right * hw + up;
+                verts[b + 5] = p + right * hw + kerbUp;
                 verts[b + 6] = p + right * (hw + kerbW);
 
                 float[] us = { 0f, 0.1f, 0.15f, 0.5f, 0.85f, 0.9f, 1f };
                 for (int j = 0; j < vPerRing; j++)
-                {
                     uvs[b + j] = new Vector2(us[j], v);
-                }
             }
 
             int ti = 0;
@@ -113,7 +130,6 @@ namespace Assets.Scripts.Runtime.MeshRelated
             {
                 int cur = i * vPerRing;
                 int nxt = cur + vPerRing;
-
                 for (int q = 0; q < quadsPerSeg; q++)
                 {
                     tris[ti++] = cur + q;
