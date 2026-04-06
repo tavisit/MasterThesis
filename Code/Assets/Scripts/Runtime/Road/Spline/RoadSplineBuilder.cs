@@ -14,25 +14,22 @@ namespace Assets.Scripts.Runtime.Spline
     public static class RoadSplineBuilder
     {
         private const float OrganicTangentFraction = 0.20f;
-        private const float SetbackFraction = 1.1f;
+        private const float SetbackFraction = 0f;
 
         public static List<SplineContainer> BuildSplines(
             RoadGraph graph,
             Transform parent,
+            RoadSettings roadSettings,
             UrbanMorphology morphology = UrbanMorphology.Grid,
             int seed = 0)
         {
             var containers = new List<SplineContainer>();
             var chains = graph.ExtractChains();
-
             var junctionSet = BuildJunctionSet(graph);
 
             foreach (var chain in chains)
             {
-                if (chain.Count < 2)
-                {
-                    continue;
-                }
+                if (chain.Count < 2) continue;
 
                 var go = new GameObject($"RoadSpline_{chain[0].Type}");
                 go.transform.SetParent(parent, worldPositionStays: false);
@@ -42,10 +39,10 @@ namespace Assets.Scripts.Runtime.Spline
                 spline.Clear();
 
                 bool isOrganic = morphology == UrbanMorphology.Organic;
-                bool isBoulevard = chain[0].Type == RoadType.Boulevard;
 
-                var positions = BuildPositions(chain, isOrganic, isBoulevard, seed);
-                float hw = RoadMeshExtruder.GetHalfWidth(chain[0].Type);
+                var positions = BuildPositions(chain, isOrganic, seed);
+
+                float hw = RoadMeshExtruder.GetHalfWidth(chain[0].Type, roadSettings);
                 float setback = hw * SetbackFraction;
 
                 positions = ApplySetback(
@@ -61,9 +58,9 @@ namespace Assets.Scripts.Runtime.Spline
                     continue;
                 }
 
-                TangentMode mode = (isOrganic && !isBoulevard)
-                    ? TangentMode.Broken
-                    : TangentMode.Linear;
+                TangentMode mode = morphology == UrbanMorphology.Organic
+                ? TangentMode.AutoSmooth
+                : TangentMode.Linear;
 
                 for (int i = 0; i < positions.Count; i++)
                 {
@@ -110,7 +107,7 @@ namespace Assets.Scripts.Runtime.Spline
             return containers;
         }
 
-        private static HashSet<RoadNode> BuildJunctionSet(RoadGraph graph)
+        public static HashSet<RoadNode> BuildJunctionSet(RoadGraph graph)
         {
             var degree = new Dictionary<RoadNode, int>();
             foreach (var edge in graph.Edges)
@@ -123,14 +120,11 @@ namespace Assets.Scripts.Runtime.Spline
 
             var junctions = new HashSet<RoadNode>();
             foreach (var kvp in degree)
-            {
-                if (kvp.Value > 2)
-                {
-                    junctions.Add(kvp.Key);
-                }
-            }
+                if (kvp.Value > 2) junctions.Add(kvp.Key);
+
             return junctions;
         }
+
         private static List<Vector3> ApplySetback(
             List<Vector3> positions,
             RoadNode startNode,
@@ -138,10 +132,7 @@ namespace Assets.Scripts.Runtime.Spline
             HashSet<RoadNode> junctions,
             float setback)
         {
-            if (positions.Count < 2)
-            {
-                return positions;
-            }
+            if (positions.Count < 2) return positions;
 
             var result = new List<Vector3>(positions);
 
@@ -167,25 +158,19 @@ namespace Assets.Scripts.Runtime.Spline
             return result;
         }
 
-
         private static List<Vector3> BuildPositions(
             List<RoadNode> chain,
             bool isOrganic,
-            bool isBoulevard,
             int seed)
         {
-            if (!isOrganic || isBoulevard)
+            if (!isOrganic)
             {
                 var flat = new List<Vector3>();
                 for (int i = 0; i < chain.Count; i++)
-                {
-                    if (!isBoulevard || i == 0 || i == chain.Count - 1 || i % 3 == 0)
-                    {
-                        flat.Add(chain[i].Position);
-                    }
-                }
+                    flat.Add(chain[i].Position);
                 return flat;
             }
+
             var rng = new System.Random(seed + chain[0].Id);
             var positions = new List<Vector3> { chain[0].Position };
 
@@ -193,7 +178,6 @@ namespace Assets.Scripts.Runtime.Spline
             {
                 Vector3 a = chain[i].Position;
                 Vector3 b = chain[i + 1].Position;
-
                 Vector3 dir = b - a;
                 dir.y = 0f;
                 float segLen = dir.magnitude;
@@ -203,7 +187,6 @@ namespace Assets.Scripts.Runtime.Spline
                     Vector3 perp = new Vector3(-dir.z, 0f, dir.x).normalized;
                     float maxOffset = segLen * 0.10f;
                     float offset = (float)(rng.NextDouble() * 2.0 - 1.0) * maxOffset;
-
                     Vector3 mid = (a + b) * 0.5f;
                     mid += perp * offset;
                     mid.y = (a.y + b.y) * 0.5f;

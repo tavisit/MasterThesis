@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Assets.Scripts.Runtime.Graph
 {
-    public enum RoadType { Street, Boulevard, Metro }
+    public enum RoadType { Street, Metro }
 
     public sealed class RoadNode
     {
@@ -68,7 +68,7 @@ namespace Assets.Scripts.Runtime.Graph
             var sub = new RoadGraph();
             var nodeMap = new Dictionary<RoadNode, RoadNode>();
 
-            RoadNode Map(RoadNode n)
+            RoadNode GetOrAdd(RoadNode n)
             {
                 if (!nodeMap.TryGetValue(n, out var mapped))
                 {
@@ -81,10 +81,18 @@ namespace Assets.Scripts.Runtime.Graph
             for (int i = 0; i < Mathf.Min(edgeCount, _edges.Count); i++)
             {
                 var e = _edges[i];
-                sub.AddEdge(Map(e.From), Map(e.To), e.Type);
+                sub.AddEdge(GetOrAdd(e.From), GetOrAdd(e.To), e.Type);
             }
 
             return sub;
+        }
+
+        public void RetainEdges(System.Func<RoadEdge, bool> predicate)
+        {
+            _edges.RemoveAll(e => !predicate(e));
+            var connected = new HashSet<RoadNode>();
+            foreach (var edge in _edges) { connected.Add(edge.From); connected.Add(edge.To); }
+            _nodes.RemoveAll(n => !connected.Contains(n));
         }
 
         public List<List<RoadNode>> ExtractChains()

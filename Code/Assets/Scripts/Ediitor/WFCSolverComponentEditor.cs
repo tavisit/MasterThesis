@@ -1,5 +1,7 @@
 ﻿#if UNITY_EDITOR
 using Assets.Scripts.Runtime.City;
+using Assets.Scripts.Runtime.MeshRelated;
+using Assets.Scripts.Runtime.Road.Generators;
 
 using UnityEditor;
 
@@ -28,6 +30,11 @@ namespace Assets.Scripts.Editor
                 manager.Clear();
             }
 
+            if (GUILayout.Button("Rebuild Meshes"))
+            {
+                manager.RegenerateMeshes();
+            }
+
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Last Result", manager.LastResult.ToString());
             EditorGUILayout.LabelField("Collapse Count", manager.CollapseCount.ToString());
@@ -44,7 +51,6 @@ namespace Assets.Scripts.Editor
 
             DrawGrid(manager);
             DrawNuclei(manager);
-            DrawBoulevardPreview(manager);
         }
 
         private void DrawGrid(CityManager manager)
@@ -89,57 +95,6 @@ namespace Assets.Scripts.Editor
                 Handles.Label(centre + Vector3.up * 4f,
                     $"Nucleus\nR={nucleus.Radius:F0}  S={nucleus.Strength:F1}",
                     EditorStyles.boldLabel);
-            }
-        }
-
-        private void DrawBoulevardPreview(CityManager manager)
-        {
-            var nuclei = manager.Nuclei;
-            if (nuclei == null || nuclei.Length < 2)
-            {
-                return;
-            }
-
-            Handles.color = new Color(1f, 0.9f, 0f, 0.8f);
-            var connected = new System.Collections.Generic.HashSet<(int, int)>();
-            int k = manager.MaxBoulevards;
-
-            for (int i = 0; i < nuclei.Length; i++)
-            {
-                var distances = new System.Collections.Generic.List<(float d, int j)>();
-                for (int j = 0; j < nuclei.Length; j++)
-                {
-                    if (i == j)
-                    {
-                        continue;
-                    }
-
-                    distances.Add((Vector2.Distance(nuclei[i].Centre, nuclei[j].Centre), j));
-                }
-                distances.Sort((a, b) => a.d.CompareTo(b.d));
-
-                int count = 0;
-                foreach (var (_, j) in distances)
-                {
-                    if (count >= k)
-                    {
-                        break;
-                    }
-
-                    int a = Mathf.Min(i, j), b = Mathf.Max(i, j);
-                    if (connected.Contains((a, b)))
-                    {
-                        continue;
-                    }
-
-                    connected.Add((a, b));
-                    count++;
-
-                    float y = manager.transform.position.y;
-                    Vector3 from = new Vector3(nuclei[i].Centre.x, y, nuclei[i].Centre.y);
-                    Vector3 to = new Vector3(nuclei[j].Centre.x, y, nuclei[j].Centre.y);
-                    Handles.DrawLine(from, to, 3f);
-                }
             }
         }
     }
