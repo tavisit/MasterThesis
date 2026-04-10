@@ -7,7 +7,7 @@ namespace Assets.Scripts.Runtime.Voronoi
     public sealed class VoronoiCell
     {
         public int Id { get; }
-        public Vector2 Site { get; } 
+        public Vector2 Site { get; }
         public List<Vector2> Vertices { get; }
         public List<int> Neighbours { get; }
 

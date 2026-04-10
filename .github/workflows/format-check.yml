@@ -1,0 +1,47 @@
+name: Format Check
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  format-check:
+    name: dotnet format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ hashFiles('**/*.csproj', '**/*.sln') }}
+          restore-keys: nuget-
+
+      - name: Restore dependencies
+        run: dotnet restore Code/Code.sln
+
+      - name: Check formatting
+        run: |
+          dotnet format Code/Code.sln \
+            --verify-no-changes \
+            --exclude "**/ThirdParty/**" \
+            --exclude "**/Library/**"
+
+      - name: Report formatting issues
+        if: failure()
+        run: |
+          echo "Formatting issues found. Run the following command locally to fix them:"
+          echo ""
+          echo "  dotnet format Code/Code.sln --exclude \"**/ThirdParty/**\""
+          echo ""
+          echo "Then commit the changes and push again."

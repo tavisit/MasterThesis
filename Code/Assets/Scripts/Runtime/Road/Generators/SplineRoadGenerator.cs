@@ -99,10 +99,15 @@ namespace Assets.Scripts.Runtime.Road.Generators
         {
             foreach (var go in _generated)
             {
-                if (go == null) continue;
+                if (go == null)
+                {
+                    continue;
+                }
 #if UNITY_EDITOR
                 if (!Application.isPlaying)
+                {
                     Object.DestroyImmediate(go);
+                }
                 else
 #endif
                     Object.Destroy(go);
@@ -173,7 +178,10 @@ namespace Assets.Scripts.Runtime.Road.Generators
 
             foreach (var kvp in degree)
             {
-                if (kvp.Value < 3) continue;
+                if (kvp.Value < 3)
+                {
+                    continue;
+                }
 
                 RoadNode node = kvp.Key;
                 float coneHeight = hw * 0.2f;
@@ -220,7 +228,10 @@ namespace Assets.Scripts.Runtime.Road.Generators
 
             for (int i = 0; i < edges.Count; i++)
             {
-                if (toRemove.Contains(edges[i])) continue;
+                if (toRemove.Contains(edges[i]))
+                {
+                    continue;
+                }
 
                 Vector3 midI = (edges[i].From.Position + edges[i].To.Position) * 0.5f;
                 Vector3 dirI = (edges[i].To.Position - edges[i].From.Position).normalized;
@@ -228,20 +239,28 @@ namespace Assets.Scripts.Runtime.Road.Generators
 
                 for (int j = i + 1; j < edges.Count; j++)
                 {
-                    if (toRemove.Contains(edges[j])) continue;
+                    if (toRemove.Contains(edges[j]))
+                    {
+                        continue;
+                    }
 
                     Vector3 midJ = (edges[j].From.Position + edges[j].To.Position) * 0.5f;
                     Vector3 dirJ = (edges[j].To.Position - edges[j].From.Position).normalized;
                     float lenJ = Vector3.Distance(edges[j].From.Position, edges[j].To.Position);
 
-                    if (Vector3.Distance(midI, midJ) > maxMidpointDistance) continue;
+                    if (Vector3.Distance(midI, midJ) > maxMidpointDistance)
+                    {
+                        continue;
+                    }
 
                     float angle = Mathf.Min(
                         Vector3.Angle(dirI, dirJ),
                         Vector3.Angle(dirI, -dirJ));
 
                     if (angle < maxAngleDegrees)
+                    {
                         toRemove.Add(lenI < lenJ ? edges[i] : edges[j]);
+                    }
                 }
             }
 
@@ -255,7 +274,11 @@ namespace Assets.Scripts.Runtime.Road.Generators
         private static void PruneAcuteEdges(RoadGraph graph, float minAngleDegrees)
         {
             var adj = new Dictionary<RoadNode, List<RoadEdge>>();
-            foreach (var node in graph.Nodes) adj[node] = new List<RoadEdge>();
+            foreach (var node in graph.Nodes)
+            {
+                adj[node] = new List<RoadEdge>();
+            }
+
             foreach (var edge in graph.Edges)
             {
                 adj[edge.From].Add(edge);
@@ -267,7 +290,10 @@ namespace Assets.Scripts.Runtime.Road.Generators
             foreach (var node in graph.Nodes)
             {
                 var edges = adj[node];
-                if (edges.Count < 3) continue;
+                if (edges.Count < 3)
+                {
+                    continue;
+                }
 
                 var dirs = new (RoadEdge edge, Vector3 dir, float len)[edges.Count];
                 for (int i = 0; i < edges.Count; i++)
@@ -280,10 +306,16 @@ namespace Assets.Scripts.Runtime.Road.Generators
                 }
 
                 for (int i = 0; i < dirs.Length; i++)
+                {
                     for (int j = i + 1; j < dirs.Length; j++)
+                    {
                         if (Vector3.Angle(dirs[i].dir, dirs[j].dir) < minAngleDegrees)
+                        {
                             toRemove.Add(dirs[i].len < dirs[j].len
                                 ? dirs[i].edge : dirs[j].edge);
+                        }
+                    }
+                }
             }
 
             if (toRemove.Count > 0)
@@ -321,7 +353,10 @@ namespace Assets.Scripts.Runtime.Road.Generators
         {
             var spline = container.Spline;
             float length = spline.GetLength();
-            if (length <= 0f) return;
+            if (length <= 0f)
+            {
+                return;
+            }
 
             float interval = _manager.MetroStationInterval;
             int count = Mathf.Max(1, Mathf.FloorToInt(length / interval));
@@ -333,8 +368,10 @@ namespace Assets.Scripts.Runtime.Road.Generators
             stationsParent.transform.SetParent(container.transform, false);
 
             foreach (float tt in new[] { 0f, 1f })
+            {
                 TryPlaceStation(container, spline, tt, platformW, platformL,
                                 stationsParent, forced: true);
+            }
 
             for (int s = 1; s <= count; s++)
             {
@@ -368,13 +405,24 @@ namespace Assets.Scripts.Runtime.Road.Generators
 
             if (!forced)
             {
-                if (terrainH > railH + 1f) return;
-                if (aboveTerrain > 15f) return;
+                if (terrainH > railH + 1f)
+                {
+                    return;
+                }
+
+                if (aboveTerrain > 15f)
+                {
+                    return;
+                }
 
                 var cell = new Vector2Int(
                     Mathf.RoundToInt(railPos.x / (_manager.MetroStationInterval * 0.5f)),
                     Mathf.RoundToInt(railPos.z / (_manager.MetroStationInterval * 0.5f)));
-                if (_placedStationCells.Contains(cell)) return;
+                if (_placedStationCells.Contains(cell))
+                {
+                    return;
+                }
+
                 _placedStationCells.Add(cell);
             }
 
@@ -414,7 +462,9 @@ namespace Assets.Scripts.Runtime.Road.Generators
             go.transform.position = new Vector3(railPos.x, terrainH, railPos.z);
 
             if (tangent.sqrMagnitude > 0.001f)
+            {
                 go.transform.rotation = Quaternion.LookRotation(tangent, Vector3.up);
+            }
 
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             go.AddComponent<MeshRenderer>().sharedMaterial = _manager.MetroStationMaterial;

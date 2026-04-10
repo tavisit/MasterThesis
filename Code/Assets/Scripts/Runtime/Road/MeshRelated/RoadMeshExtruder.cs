@@ -27,12 +27,22 @@ namespace Assets.Scripts.Runtime.MeshRelated
         public Material RoadMaterial
         {
             get => _roadMaterial;
-            set { _roadMaterial = value; if (_renderer) _renderer.sharedMaterial = value; }
+            set
+            {
+                _roadMaterial = value; if (_renderer)
+                {
+                    _renderer.sharedMaterial = value;
+                }
+            }
         }
 
         public static float GetHalfWidth(RoadType t, RoadSettings settings)
         {
-            if (settings != null) return settings.GetHalfWidth(t);
+            if (settings != null)
+            {
+                return settings.GetHalfWidth(t);
+            }
+
             return 4.0f;
         }
 
@@ -50,11 +60,15 @@ namespace Assets.Scripts.Runtime.MeshRelated
             {
                 var cityManager = FindFirstObjectByType<CityManager>();
                 if (cityManager != null)
+                {
                     _roadSettings = cityManager.RoadSettings;
+                }
             }
 
             if (_roadMaterial != null)
+            {
                 _renderer.sharedMaterial = _roadMaterial;
+            }
         }
 
         private void Start() => Rebuild();
@@ -62,7 +76,9 @@ namespace Assets.Scripts.Runtime.MeshRelated
         public void Rebuild()
         {
             if (_roadSettings == null)
+            {
                 _roadSettings = FindFirstObjectByType<CityManager>()?.RoadSettings;
+            }
 
             if (_roadSettings == null)
             {
@@ -71,7 +87,10 @@ namespace Assets.Scripts.Runtime.MeshRelated
                 return;
             }
 
-            if (_container == null || _container.Spline == null) return;
+            if (_container == null || _container.Spline == null)
+            {
+                return;
+            }
 
             var spline = _container.Spline;
             float hw = _roadSettings.GetHalfWidth(_type);
@@ -79,7 +98,10 @@ namespace Assets.Scripts.Runtime.MeshRelated
             float kerbW = _roadSettings.GetKerbWidth(_type);
             float length = spline.GetLength();
 
-            if (length <= 0f) return;
+            if (length <= 0f)
+            {
+                return;
+            }
 
             float camber = kerbH * 0.5f;
             int rings = Mathf.Max(2, Mathf.CeilToInt(length / _resolution));
@@ -104,7 +126,10 @@ namespace Assets.Scripts.Runtime.MeshRelated
                 {
                     Vector3 worldRight = Vector3.right;
                     if (Mathf.Abs(Vector3.Dot(tang, worldRight)) > 0.99f)
+                    {
                         worldRight = Vector3.forward;
+                    }
+
                     right = Vector3.Cross(up, worldRight).normalized;
                 }
 
@@ -122,7 +147,9 @@ namespace Assets.Scripts.Runtime.MeshRelated
 
                 float[] us = { 0f, 0.1f, 0.15f, 0.5f, 0.85f, 0.9f, 1f };
                 for (int j = 0; j < vPerRing; j++)
+                {
                     uvs[b + j] = new Vector2(us[j], v);
+                }
             }
 
             int ti = 0;
