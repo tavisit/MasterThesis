@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b7ca27f39f629f4490e45aa4f3d63a8, type: 3}
   m_Name: RoadSettings
   m_EditorClassIdentifier: Assembly-CSharp::RoadSettings
-  streetHalfWidth: 2
+  streetHalfWidth: 1
   metroHalfWidth: 2
   streetKerbHeight: 0.1
   metroKerbHeight: 0.2

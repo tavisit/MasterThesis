@@ -163,6 +163,9 @@ namespace Assets.Scripts.Runtime.City
 
             VoronoiStreetSolver = new VoronoiWFCSolver(tileSet, cells, _seed, _maxBacktracks);
 
+            if (_nuclei != null && _nuclei.Length > 0)
+                NucleusConstraintApplier.ApplyVoronoi(VoronoiStreetSolver, _nuclei);
+
             if (_terrainAdapter != null)
                 _terrainAdapter.ApplyTerrainConstraintsVoronoi(VoronoiStreetSolver);
 
@@ -180,6 +183,36 @@ namespace Assets.Scripts.Runtime.City
             float minDist = _voronoiCellSize * 0.8f;
             int maxAttempts = 30;
             int attempts = 0;
+            if (_nuclei != null)
+            {
+                foreach (var nucleus in _nuclei)
+                {
+                    float nucleusMinDist = _voronoiCellSize * (0.5f / nucleus.Strength);
+                    int extraCount = Mathf.RoundToInt(
+                        Mathf.PI * nucleus.Radius * nucleus.Radius /
+                        (nucleusMinDist * nucleusMinDist));
+                    extraCount = Mathf.Clamp(extraCount, 4, 40);
+
+                    for (int e = 0; e < extraCount * maxAttempts && sites.Count < count + extraCount; e++)
+                    {
+                        float angle = (float)(rng.NextDouble() * Mathf.PI * 2f);
+                        float r = (float)(rng.NextDouble() * nucleus.Radius);
+                        var candidate = new Vector2(
+                            nucleus.Centre.x + Mathf.Cos(angle) * r,
+                            nucleus.Centre.y + Mathf.Sin(angle) * r);
+
+                        if (candidate.x < 0 || candidate.x > worldW ||
+                            candidate.y < 0 || candidate.y > worldH) continue;
+
+                        bool tooClose = false;
+                        foreach (var s in sites)
+                            if (Vector2.Distance(candidate, s) < nucleusMinDist)
+                            { tooClose = true; break; }
+
+                        if (!tooClose) sites.Add(candidate);
+                    }
+                }
+            }
 
             while (sites.Count < count && attempts < count * maxAttempts)
             {
