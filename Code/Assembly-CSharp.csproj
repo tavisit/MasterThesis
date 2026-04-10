@@ -61,31 +61,7 @@
     <Analyzer Include="D:\Unity\6000.3.6f1\Editor\Data\Tools\BuildPipeline\Unity.SourceGenerators\Unity.UIToolkit.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\Scripts\Runtime\City\NucleusConstraintApplier.cs" />
-    <Compile Include="Assets\Scripts\Runtime\Road\Generators\RoadOverlayGenerator.cs" />
-    <Compile Include="Assets\Scripts\Runtime\Road\Graph\RoadGraphConnector.cs" />
-    <Compile Include="Assets\Scripts\Runtime\Road\Graph\RoadGraphExtractor.cs" />
-    <Compile Include="Assets\Scripts\Runtime\Voronoi\VoronoiRoadGraphExtrator.cs" />
-    <Compile Include="Assets\Scripts\Runtime\Road\MeshRelated\RoadMeshExtruder.cs" />
-    <Compile Include="Assets\Scripts\Runtime\WFC\WFCCell.cs" />
-    <Compile Include="Assets\Scripts\Ediitor\RoadSettings.cs" />
-    <Compile Include="Assets\Scripts\Runtime\Adapters\WFCSolverComponent.cs" />
-    <Compile Include="Assets\Scripts\Runtime\WFC\TileDefinition.cs" />
-    <Compile Include="Assets\Scripts\Runtime\City\RoadTileSetFactory.cs" />
-    <Compile Include="Assets\Scripts\Runtime\WFC\WFCSolver.cs" />
-    <Compile Include="Assets\Scripts\Ediitor\WFCSolverComponentEditor.cs" />
-    <Compile Include="Assets\Scripts\Runtime\WFC\VoronoiWFCSolver.cs" />
-    <Compile Include="Assets\Scripts\Runtime\Road\Generators\SplineRoadGenerator.cs" />
-    <Compile Include="Assets\Scripts\Runtime\Adapters\TerrainAdapter.cs" />
-    <Compile Include="Assets\Scripts\Runtime\Voronoi\VoronoiGenerator.cs" />
-    <Compile Include="Assets\Scripts\Runtime\Road\Graph\RoadGraph.cs" />
-    <Compile Include="Assets\Scripts\Runtime\City\CityManager.cs" />
-    <Compile Include="Assets\Scripts\Runtime\Road\Generators\MetroGenerator.cs" />
-    <Compile Include="Assets\Scripts\Runtime\Road\Spline\RoadSplineBuilder.cs" />
-    <Compile Include="Assets\Scripts\Runtime\City\CityNucleus.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Assets\Scripts\Assets.Scripts.Runtime.asmdef" />
+    <Compile Include="Assets\ProceduralCityGenerator\package.json.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

@@ -7,20 +7,16 @@ public static class PackageExporter
 {
     public static void Export()
     {
-        string[] assetPaths =
-        {
-            "Assets/Scripts",
-            "Assets/Materials",
-            "Assets/Scenes/DemoScene.unity"
+        string[] assetPaths = { "Assets/PCG/Scripts",
+            "Assets/PCG/Materials",
+            "Assets/PCG/Scenes",
+            "Assets/PCG/README.md"
         };
 
         Directory.CreateDirectory("Builds");
 
-        AssetDatabase.ExportPackage(
-            assetPaths,
-            "Builds/ProceduralCityGenerator.unitypackage",
-            ExportPackageOptions.Recurse |
-            ExportPackageOptions.IncludeDependencies);
+        AssetDatabase.ExportPackage(assetPaths, "Builds/ProceduralCityGenerator.unitypackage",
+            ExportPackageOptions.Recurse);
 
         UnityEngine.Debug.Log("[PackageExporter] Export complete.");
     }
