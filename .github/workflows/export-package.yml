@@ -16,6 +16,8 @@ jobs:
   export-package:
     name: Export .unitypackage
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -29,7 +31,14 @@ jobs:
           path: Code/Library
           key: Library-${{ hashFiles('Code/Assets/**', 'Code/Packages/**', 'Code/ProjectSettings/**') }}
           restore-keys: Library-
-
+          
+      - name: Update README version
+        run: |
+          RELEASE_DATE=$(date +%Y-%m-%d)
+          SHORT_HASH=$(git rev-parse --short HEAD)
+          VERSION="${{ github.ref_name }}"
+          sed -i "s/VERSION_PLACEHOLDER/${VERSION} (${RELEASE_DATE} - ${SHORT_HASH})/" Code/Assets/PCG/README.md
+          
       - name: Export .unitypackage via GameCI
         uses: game-ci/unity-builder@v4
         env:
@@ -73,11 +82,12 @@ jobs:
           name: ${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.version }}
           path: Code/Builds/*.unitypackage
           retention-days: 90
-
+          
       - name: Attach package to GitHub Release
         if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.version.outputs.package_file }}
+          body_path: Code/Assets/PCG/README.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
