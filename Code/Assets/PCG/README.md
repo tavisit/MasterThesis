@@ -1,7 +1,12 @@
-Before importing this package, add the following to your project's
-Packages/manifest.json under "dependencies":
+# Procedural City Generator
 
-  "com.unity.splines": "2.8.4",
-  "com.unity.mathematics": "1.3.3",
+## Version
+VERSION_PLACEHOLDER
 
-Or install via Window > Package Manager > Add package by name.
+## Dependencies
+Before importing, install via **Window > Package Manager > Add package by name**:
+- `com.unity.splines` — `2.8.4`
+- `com.unity.mathematics` — `1.3.3`
+
+## Source Repository
+https://github.com/tavisit/MasterThesis
