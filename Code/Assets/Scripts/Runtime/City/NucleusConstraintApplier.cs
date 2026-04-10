@@ -16,18 +16,17 @@ namespace Assets.Scripts.Runtime.City
             "cross"
         };
 
+        private const float SparseFractionDefault = 1.5f;
+
         public static void Apply(
             WFCSolver solver,
             IReadOnlyList<CityNucleus> nuclei,
             int rows,
             int columns,
             float cellSize,
-            float sparseRadiusFraction = 1.5f)
+            float sparseRadiusFraction = SparseFractionDefault)
         {
-            if (nuclei == null || nuclei.Count == 0)
-            {
-                return;
-            }
+            if (nuclei == null || nuclei.Count == 0) return;
 
             for (int r = 0; r < rows; r++)
             {
@@ -36,33 +35,85 @@ namespace Assets.Scripts.Runtime.City
                     float wx = c * cellSize;
                     float wz = r * cellSize;
 
-                    float minDist = float.MaxValue;
-                    float influence = 0f;
+                    ComputeInfluence(new Vector2(wx, wz), nuclei, sparseRadiusFraction,
+                        out float maxInfluence, out float maxStrength);
 
-                    foreach (var nucleus in nuclei)
-                    {
-                        float dist = Vector2.Distance(new Vector2(wx, wz), nucleus.Centre);
-                        if (dist < minDist)
-                        {
-                            minDist = dist;
-                        }
-                        if (dist <= nucleus.Radius)
-                        {
-                            influence = Mathf.Max(influence, 1f);
-                        }
-                        else if (dist <= nucleus.Radius * sparseRadiusFraction)
-                        {
-                            influence = Mathf.Max(influence,
-                                1f - (dist - nucleus.Radius) / (nucleus.Radius * (sparseRadiusFraction - 1f)));
-                        }
-                    }
-                    if (influence >= 1f)
-                    {
-                        var allowed = new System.Collections.Generic.List<string>(_roadTileIds) { "empty" };
-                        solver.ApplyConstraint(r, c, allowed);
-                    }
+                    if (maxInfluence <= 0f) continue;
+
+                    ApplyTileConstraint(solver, r, c, maxInfluence, maxStrength);
                 }
             }
+        }
+
+        public static void ApplyVoronoi(
+            VoronoiWFCSolver solver,
+            IReadOnlyList<CityNucleus> nuclei,
+            float sparseRadiusFraction = SparseFractionDefault)
+        {
+            if (nuclei == null || nuclei.Count == 0) return;
+
+            int cellCount = solver.CellCount;
+            for (int i = 0; i < cellCount; i++)
+            {
+                var cell = solver.GetCell(i);
+
+                ComputeInfluence(cell.Site, nuclei, sparseRadiusFraction,
+                    out float maxInfluence, out float maxStrength);
+
+                if (maxInfluence <= 0f) continue;
+
+                ApplyVoronoiTileConstraint(solver, i, maxInfluence, maxStrength);
+            }
+        }
+
+        private static void ComputeInfluence(
+            Vector2 worldPos,
+            IReadOnlyList<CityNucleus> nuclei,
+            float sparseRadiusFraction,
+            out float maxInfluence,
+            out float maxStrength)
+        {
+            maxInfluence = 0f;
+            maxStrength = 1f;
+
+            foreach (var nucleus in nuclei)
+            {
+                float dist = Vector2.Distance(worldPos, nucleus.Centre);
+
+                float influence;
+                if (dist <= nucleus.Radius)
+                    influence = 1f - (dist / Mathf.Max(0.001f, nucleus.Radius));
+                else if (dist <= nucleus.Radius * sparseRadiusFraction)
+                {
+                    float outer = nucleus.Radius * sparseRadiusFraction;
+                    influence = (1f - (dist - nucleus.Radius) /
+                                  Mathf.Max(0.001f, outer - nucleus.Radius)) * 0.3f;
+                }
+                else
+                    influence = 0f;
+
+                if (influence > maxInfluence)
+                {
+                    maxInfluence = influence;
+                    maxStrength = nucleus.Strength;
+                }
+            }
+        }
+
+        private static void ApplyTileConstraint(
+            WFCSolver solver, int row, int col,
+            float maxInfluence, float maxStrength)
+        {
+            var allowed = new List<string>(_roadTileIds) { "empty" };
+            solver.ApplyConstraint(row, col, allowed);
+        }
+
+        private static void ApplyVoronoiTileConstraint(
+            VoronoiWFCSolver solver, int cellId,
+            float maxInfluence, float maxStrength)
+        {
+            var allowed = new List<string>(_roadTileIds) { "empty" };
+            solver.ApplyConstraint(cellId, allowed);
         }
     }
 }
