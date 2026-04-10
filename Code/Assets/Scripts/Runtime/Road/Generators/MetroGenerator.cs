@@ -24,34 +24,55 @@ namespace Assets.Scripts.Runtime.Road.Generators
             var metroContainers = new List<SplineContainer>();
 
             if (nuclei == null || nuclei.Length < 2 || streetGraph.Nodes.Count == 0)
+            {
                 return metroContainers;
+            }
 
             var adj = BuildAdjacency(streetGraph);
 
             var nucleusNodes = new RoadNode[nuclei.Length];
             for (int i = 0; i < nuclei.Length; i++)
+            {
                 nucleusNodes[i] = FindClosestNode(streetGraph, nuclei[i].Centre);
+            }
 
             var allPairs = new List<(float dist, int i, int j)>();
             for (int i = 0; i < nuclei.Length; i++)
+            {
                 for (int j = i + 1; j < nuclei.Length; j++)
+                {
                     if (nucleusNodes[i] != null && nucleusNodes[j] != null)
+                    {
                         allPairs.Add((Vector2.Distance(nuclei[i].Centre, nuclei[j].Centre), i, j));
+                    }
+                }
+            }
 
             allPairs.Sort((a, b) => a.dist.CompareTo(b.dist));
 
             var parent = new int[nuclei.Length];
-            for (int i = 0; i < nuclei.Length; i++) parent[i] = i;
+            for (int i = 0; i < nuclei.Length; i++)
+            {
+                parent[i] = i;
+            }
 
             int Find(int x)
             {
-                while (parent[x] != x) x = parent[x] = parent[parent[x]];
+                while (parent[x] != x)
+                {
+                    x = parent[x] = parent[parent[x]];
+                }
+
                 return x;
             }
 
             foreach (var (_, i, j) in allPairs)
             {
-                if (Find(i) == Find(j)) continue;
+                if (Find(i) == Find(j))
+                {
+                    continue;
+                }
+
                 parent[Find(i)] = Find(j);
 
                 Vector2 directBearing = (nuclei[j].Centre - nuclei[i].Centre).normalized;
@@ -67,7 +88,9 @@ namespace Assets.Scripts.Runtime.Road.Generators
                                         parent2, morphology);
 
                 if (container != null)
+                {
                     metroContainers.Add(container);
+                }
             }
 
             return metroContainers;
@@ -77,7 +100,9 @@ namespace Assets.Scripts.Runtime.Road.Generators
         {
             var adj = new Dictionary<RoadNode, List<RoadEdge>>(graph.Nodes.Count);
             foreach (var node in graph.Nodes)
+            {
                 adj[node] = new List<RoadEdge>();
+            }
 
             foreach (var edge in graph.Edges)
             {
@@ -112,7 +137,9 @@ namespace Assets.Scripts.Runtime.Road.Generators
             var prev = new Dictionary<RoadNode, (RoadNode node, RoadEdge edge)>();
 
             foreach (var node in graph.Nodes)
+            {
                 gScore[node] = float.MaxValue;
+            }
 
             gScore[start] = 0f;
             int idCounter = 0;
@@ -130,8 +157,15 @@ namespace Assets.Scripts.Runtime.Road.Generators
                 var (_, _, current) = open.Min;
                 open.Remove(open.Min);
 
-                if (current == end) break;
-                if (!adj.TryGetValue(current, out var edges)) continue;
+                if (current == end)
+                {
+                    break;
+                }
+
+                if (!adj.TryGetValue(current, out var edges))
+                {
+                    continue;
+                }
 
                 foreach (var edge in edges)
                 {
@@ -159,7 +193,10 @@ namespace Assets.Scripts.Runtime.Road.Generators
                 }
             }
 
-            if (!prev.ContainsKey(end)) return null;
+            if (!prev.ContainsKey(end))
+            {
+                return null;
+            }
 
             var path = new List<RoadEdge>();
             RoadNode cur = end;
@@ -181,18 +218,29 @@ namespace Assets.Scripts.Runtime.Road.Generators
             Transform parent,
             UrbanMorphology morphology)
         {
-            if (path == null || path.Count == 0) return null;
+            if (path == null || path.Count == 0)
+            {
+                return null;
+            }
 
             var positions = new List<Vector3>();
             Vector3 Lift(Vector3 p) => new Vector3(p.x, p.y + MetroYBoost, p.z);
 
             positions.Add(Lift(path[0].From.Position));
             foreach (var edge in path)
+            {
                 positions.Add(Lift(edge.To.Position));
+            }
 
             var reduced = new List<Vector3> { positions[0] };
             for (int i = 1; i < positions.Count - 1; i++)
-                if (i % 3 == 0) reduced.Add(positions[i]);
+            {
+                if (i % 3 == 0)
+                {
+                    reduced.Add(positions[i]);
+                }
+            }
+
             reduced.Add(positions[positions.Count - 1]);
 
             return BuildContainer(reduced, parent, morphology, "MetroSpline");
@@ -215,7 +263,10 @@ namespace Assets.Scripts.Runtime.Road.Generators
             UrbanMorphology morphology,
             string name)
         {
-            if (positions.Count < 2) return null;
+            if (positions.Count < 2)
+            {
+                return null;
+            }
 
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
@@ -228,9 +279,11 @@ namespace Assets.Scripts.Runtime.Road.Generators
                     : TangentMode.Linear; ;
 
             foreach (var pos in positions)
+            {
                 spline.Add(new BezierKnot(
                     new float3(pos.x, pos.y, pos.z),
                     float3.zero, float3.zero), mode);
+            }
 
             return container;
         }

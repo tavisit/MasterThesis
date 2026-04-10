@@ -105,7 +105,9 @@ namespace Assets.Scripts.Runtime.City
             SolveStreets();
 
             if (LastResult == SolveResult.Success)
+            {
                 SplineGenerator.Generate();
+            }
         }
 
         public void RegenerateMeshes()
@@ -143,10 +145,14 @@ namespace Assets.Scripts.Runtime.City
             StreetSolver = new WFCSolver(tileSet, _rows, _columns, _seed, _maxBacktracks);
 
             if (_nuclei != null && _nuclei.Length > 0)
+            {
                 NucleusConstraintApplier.Apply(StreetSolver, _nuclei, _rows, _columns, _cellSize);
+            }
 
             if (_terrainAdapter != null)
+            {
                 _terrainAdapter.ApplyTerrainConstraints(StreetSolver, _rows, _columns, _cellSize);
+            }
 
             LastResult = StreetSolver.Solve();
             Debug.Log($"[CityManager] Street WFC {LastResult} | " +
@@ -164,10 +170,14 @@ namespace Assets.Scripts.Runtime.City
             VoronoiStreetSolver = new VoronoiWFCSolver(tileSet, cells, _seed, _maxBacktracks);
 
             if (_nuclei != null && _nuclei.Length > 0)
+            {
                 NucleusConstraintApplier.ApplyVoronoi(VoronoiStreetSolver, _nuclei);
+            }
 
             if (_terrainAdapter != null)
+            {
                 _terrainAdapter.ApplyTerrainConstraintsVoronoi(VoronoiStreetSolver);
+            }
 
             var result = VoronoiStreetSolver.Solve();
             LastResult = result == SolveResult.Success ? SolveResult.Success : SolveResult.Failure;
@@ -202,14 +212,22 @@ namespace Assets.Scripts.Runtime.City
                             nucleus.Centre.y + Mathf.Sin(angle) * r);
 
                         if (candidate.x < 0 || candidate.x > worldW ||
-                            candidate.y < 0 || candidate.y > worldH) continue;
+                            candidate.y < 0 || candidate.y > worldH)
+                        {
+                            continue;
+                        }
 
                         bool tooClose = false;
                         foreach (var s in sites)
+                        {
                             if (Vector2.Distance(candidate, s) < nucleusMinDist)
                             { tooClose = true; break; }
+                        }
 
-                        if (!tooClose) sites.Add(candidate);
+                        if (!tooClose)
+                        {
+                            sites.Add(candidate);
+                        }
                     }
                 }
             }
@@ -223,10 +241,15 @@ namespace Assets.Scripts.Runtime.City
 
                 bool tooClose = false;
                 foreach (var s in sites)
+                {
                     if (Vector2.Distance(candidate, s) < minDist)
                     { tooClose = true; break; }
+                }
 
-                if (!tooClose) sites.Add(candidate);
+                if (!tooClose)
+                {
+                    sites.Add(candidate);
+                }
             }
 
             return sites.ToArray();
@@ -236,19 +259,25 @@ namespace Assets.Scripts.Runtime.City
         {
             var children = new List<Transform>();
             foreach (Transform child in transform)
+            {
                 children.Add(child);
+            }
 
 #if UNITY_EDITOR
             if (!Application.isPlaying)
             {
                 foreach (var child in children.Where(c => c != null))
+                {
                     DestroyImmediate(child.gameObject);
+                }
             }
             else
 #endif
             {
                 foreach (var child in children.Where(c => c != null))
+                {
                     Destroy(child.gameObject);
+                }
             }
         }
     }

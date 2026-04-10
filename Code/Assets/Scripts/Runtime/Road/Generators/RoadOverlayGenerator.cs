@@ -1,8 +1,8 @@
-﻿using Assets.Scripts.Runtime.Adapters;
+﻿using System.Collections.Generic;
+
+using Assets.Scripts.Runtime.Adapters;
 using Assets.Scripts.Runtime.Graph;
 using Assets.Scripts.Runtime.MeshRelated;
-
-using System.Collections.Generic;
 
 using UnityEngine;
 using UnityEngine.Splines;
@@ -40,15 +40,22 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
     {
         var spline = container.Spline;
         float length = spline.GetLength();
-        if (length <= 0f) return;
+        if (length <= 0f)
+        {
+            return;
+        }
 
         float hw = RoadMeshExtruder.GetHalfWidth(roadType, _roadSettings);
 
         if (_generateTunnels)
+        {
             PlaceTunnelArches(container, spline, length, hw);
+        }
 
         if (_generateBridges)
+        {
             PlaceBridgePillars(container, spline, length, hw);
+        }
     }
 
     private void PlaceTunnelArches(SplineContainer container, Spline spline, float length, float hw)
@@ -95,8 +102,15 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
             bool curr = inTunnel[i];
             bool next = i < samples - 1 && inTunnel[i + 1];
 
-            if (curr && !prev) entryPoints.Add(i);
-            if (curr && !next) exitPoints.Add(i);
+            if (curr && !prev)
+            {
+                entryPoints.Add(i);
+            }
+
+            if (curr && !next)
+            {
+                exitPoints.Add(i);
+            }
         }
 
         foreach (int entry in entryPoints)
@@ -121,12 +135,20 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
 
         for (int i = 0; i < samples; i++)
         {
-            if (!inTunnel[i]) continue;
+            if (!inTunnel[i])
+            {
+                continue;
+            }
+
             var cell = new Vector2Int(
                 Mathf.RoundToInt(positions[i].x / _tunnelSampleInterval),
                 Mathf.RoundToInt(positions[i].z / _tunnelSampleInterval));
 
-            if (_placedArchCells.Contains(cell)) continue;
+            if (_placedArchCells.Contains(cell))
+            {
+                continue;
+            }
+
             _placedArchCells.Add(cell);
 
             float prevDist = i > 0
@@ -231,7 +253,10 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
             float terrainH = _terrain != null ? _terrain.SampleHeight(pos.x, pos.z) : pos.y;
             float pillarH = pos.y - terrainH;
 
-            if (pillarH <= _bridgeHeightThreshold) continue;
+            if (pillarH <= _bridgeHeightThreshold)
+            {
+                continue;
+            }
 
             Mesh pillarMesh = BuildPillarMesh(_pillarSides, _pillarRadius, pillarH);
 

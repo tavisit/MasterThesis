@@ -39,7 +39,11 @@ namespace Assets.Scripts.Runtime.Graph
             PruneSmallComponents(graph);
 
             var adj = new Dictionary<RoadNode, List<RoadNode>>();
-            foreach (var node in graph.Nodes) adj[node] = new List<RoadNode>();
+            foreach (var node in graph.Nodes)
+            {
+                adj[node] = new List<RoadNode>();
+            }
+
             foreach (var edge in graph.Edges)
             {
                 adj[edge.From].Add(edge.To);
@@ -47,8 +51,10 @@ namespace Assets.Scripts.Runtime.Graph
             }
 
             var connCount = new Dictionary<RoadNode, int>();
-            foreach (var node in graph.Nodes) 
+            foreach (var node in graph.Nodes)
+            {
                 connCount[node] = 0;
+            }
 
             var blocked = new HashSet<(RoadNode, RoadNode)>();
 
@@ -59,7 +65,10 @@ namespace Assets.Scripts.Runtime.Graph
                     .Where(c => c.Count >= MinComponentSize)
                     .ToList();
 
-                if (significant.Count <= 1) break;
+                if (significant.Count <= 1)
+                {
+                    break;
+                }
 
                 float bestScore = float.MinValue;
                 RoadNode bestA = null;
@@ -78,16 +87,24 @@ namespace Assets.Scripts.Runtime.Graph
 
                         if (countI >= connectionsPerComponent &&
                             countJ >= connectionsPerComponent)
+                        {
                             continue;
+                        }
 
                         foreach (var a in significant[i])
                         {
                             foreach (var b in significant[j])
                             {
-                                if (blocked.Contains((a, b))) continue;
+                                if (blocked.Contains((a, b)))
+                                {
+                                    continue;
+                                }
 
                                 float d = Vector3.Distance(a.Position, b.Position);
-                                if (d >= MaxStitchDistance) continue;
+                                if (d >= MaxStitchDistance)
+                                {
+                                    continue;
+                                }
 
                                 float normDist = d / MaxStitchDistance;
                                 float roadMidY = (a.Position.y + b.Position.y) * 0.5f;
@@ -108,7 +125,10 @@ namespace Assets.Scripts.Runtime.Graph
                     }
                 }
 
-                if (bestA == null) break;
+                if (bestA == null)
+                {
+                    break;
+                }
 
                 if (!StitchAngleAcceptable(bestA, bestB, adj))
                 {
@@ -137,9 +157,20 @@ namespace Assets.Scripts.Runtime.Graph
                     significant[bestJ].Max(n => connCount.TryGetValue(n, out int c) ? c : 0)) + 1;
 
                 foreach (var n in significant[bestI])
-                    if (connCount.ContainsKey(n)) connCount[n] = newCount;
+                {
+                    if (connCount.ContainsKey(n))
+                    {
+                        connCount[n] = newCount;
+                    }
+                }
+
                 foreach (var n in significant[bestJ])
-                    if (connCount.ContainsKey(n)) connCount[n] = newCount;
+                {
+                    if (connCount.ContainsKey(n))
+                    {
+                        connCount[n] = newCount;
+                    }
+                }
             }
 
             return connections;
@@ -153,16 +184,28 @@ namespace Assets.Scripts.Runtime.Graph
             Vector3 dir = (b.Position - a.Position).normalized;
 
             if (adj.TryGetValue(a, out var aNbs))
+            {
                 foreach (var nb in aNbs)
+                {
                     if (Vector3.Angle(dir, (nb.Position - a.Position).normalized)
                         < MinStitchAngleDegrees)
+                    {
                         return false;
+                    }
+                }
+            }
 
             if (adj.TryGetValue(b, out var bNbs))
+            {
                 foreach (var nb in bNbs)
+                {
                     if (Vector3.Angle(-dir, (nb.Position - b.Position).normalized)
                         < MinStitchAngleDegrees)
+                    {
                         return false;
+                    }
+                }
+            }
 
             return true;
         }
@@ -211,7 +254,7 @@ namespace Assets.Scripts.Runtime.Graph
                 return ConnectionType.Bridge;
             }
 
-                return ConnectionType.Road;
+            return ConnectionType.Road;
         }
 
         private static float SampleMaxHeight(Vector3 a, Vector3 b, TerrainAdapter terrain)
@@ -237,7 +280,7 @@ namespace Assets.Scripts.Runtime.Graph
             {
                 adj[node] = new List<RoadNode>();
             }
-            
+
             foreach (var edge in graph.Edges)
             {
                 adj[edge.From].Add(edge.To);

@@ -26,7 +26,10 @@ namespace Assets.Scripts.Runtime.City
             float cellSize,
             float sparseRadiusFraction = SparseFractionDefault)
         {
-            if (nuclei == null || nuclei.Count == 0) return;
+            if (nuclei == null || nuclei.Count == 0)
+            {
+                return;
+            }
 
             for (int r = 0; r < rows; r++)
             {
@@ -38,7 +41,10 @@ namespace Assets.Scripts.Runtime.City
                     ComputeInfluence(new Vector2(wx, wz), nuclei, sparseRadiusFraction,
                         out float maxInfluence, out float maxStrength);
 
-                    if (maxInfluence <= 0f) continue;
+                    if (maxInfluence <= 0f)
+                    {
+                        continue;
+                    }
 
                     ApplyTileConstraint(solver, r, c, maxInfluence, maxStrength);
                 }
@@ -50,7 +56,10 @@ namespace Assets.Scripts.Runtime.City
             IReadOnlyList<CityNucleus> nuclei,
             float sparseRadiusFraction = SparseFractionDefault)
         {
-            if (nuclei == null || nuclei.Count == 0) return;
+            if (nuclei == null || nuclei.Count == 0)
+            {
+                return;
+            }
 
             int cellCount = solver.CellCount;
             for (int i = 0; i < cellCount; i++)
@@ -60,7 +69,10 @@ namespace Assets.Scripts.Runtime.City
                 ComputeInfluence(cell.Site, nuclei, sparseRadiusFraction,
                     out float maxInfluence, out float maxStrength);
 
-                if (maxInfluence <= 0f) continue;
+                if (maxInfluence <= 0f)
+                {
+                    continue;
+                }
 
                 ApplyVoronoiTileConstraint(solver, i, maxInfluence, maxStrength);
             }
@@ -82,7 +94,9 @@ namespace Assets.Scripts.Runtime.City
 
                 float influence;
                 if (dist <= nucleus.Radius)
+                {
                     influence = 1f - (dist / Mathf.Max(0.001f, nucleus.Radius));
+                }
                 else if (dist <= nucleus.Radius * sparseRadiusFraction)
                 {
                     float outer = nucleus.Radius * sparseRadiusFraction;
@@ -90,7 +104,9 @@ namespace Assets.Scripts.Runtime.City
                                   Mathf.Max(0.001f, outer - nucleus.Radius)) * 0.3f;
                 }
                 else
+                {
                     influence = 0f;
+                }
 
                 if (influence > maxInfluence)
                 {

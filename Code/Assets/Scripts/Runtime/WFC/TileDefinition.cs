@@ -80,6 +80,8 @@ namespace Assets.Scripts.Runtime.WFC
         public Socket GetSocket(Direction d) => _sockets[(int)d];
 
         public override string ToString() => $"Tile({Id})";
+
+
     }
 
     public sealed class TileSet
@@ -133,7 +135,18 @@ namespace Assets.Scripts.Runtime.WFC
 
         public TileDefinition GetTile(int index) => _tiles[index];
         public IReadOnlyCollection<int> GetCompatible(int tileIndex, Direction dir) => _adjacency[tileIndex][(int)dir];
+        public TileDefinition GetTileById(string id)
+        {
+            foreach (var tile in _tiles)
+            {
+                if (tile.Id == id)
+                {
+                    return tile;
+                }
+            }
 
+            return null;
+        }
         public int IndexOf(string tileId)
         {
             for (int i = 0; i < _tiles.Length; i++)

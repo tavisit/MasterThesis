@@ -1,7 +1,5 @@
 ﻿#if UNITY_EDITOR
 using Assets.Scripts.Runtime.City;
-using Assets.Scripts.Runtime.MeshRelated;
-using Assets.Scripts.Runtime.Road.Generators;
 
 using UnityEditor;
 

@@ -29,7 +29,10 @@ namespace Assets.Scripts.Runtime.Spline
 
             foreach (var chain in chains)
             {
-                if (chain.Count < 2) continue;
+                if (chain.Count < 2)
+                {
+                    continue;
+                }
 
                 var go = new GameObject($"RoadSpline_{chain[0].Type}");
                 go.transform.SetParent(parent, worldPositionStays: false);
@@ -120,7 +123,12 @@ namespace Assets.Scripts.Runtime.Spline
 
             var junctions = new HashSet<RoadNode>();
             foreach (var kvp in degree)
-                if (kvp.Value > 2) junctions.Add(kvp.Key);
+            {
+                if (kvp.Value > 2)
+                {
+                    junctions.Add(kvp.Key);
+                }
+            }
 
             return junctions;
         }
@@ -132,7 +140,10 @@ namespace Assets.Scripts.Runtime.Spline
             HashSet<RoadNode> junctions,
             float setback)
         {
-            if (positions.Count < 2) return positions;
+            if (positions.Count < 2)
+            {
+                return positions;
+            }
 
             var result = new List<Vector3>(positions);
 
@@ -167,7 +178,10 @@ namespace Assets.Scripts.Runtime.Spline
             {
                 var flat = new List<Vector3>();
                 for (int i = 0; i < chain.Count; i++)
+                {
                     flat.Add(chain[i].Position);
+                }
+
                 return flat;
             }
 
