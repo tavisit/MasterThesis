@@ -14,7 +14,7 @@ namespace Assets.Scripts.Runtime.Spline
     public static class RoadSplineBuilder
     {
         private const float OrganicTangentFraction = 0.20f;
-        private const float SetbackFraction = 0f;
+        private const float SetbackFraction = 0.28f;
 
         public static List<SplineContainer> BuildSplines(
             RoadGraph graph,

@@ -1,4 +1,6 @@
-﻿using Assets.Scripts.Runtime.Voronoi;
+﻿using System.Linq;
+
+using Assets.Scripts.Runtime.Voronoi;
 using Assets.Scripts.Runtime.WFC;
 
 using UnityEngine;
@@ -26,6 +28,8 @@ namespace Assets.Scripts.Runtime.Adapters
 
         public void ApplyTerrainConstraints(WFCSolver solver, int rows, int columns, float cellSize)
         {
+            string[] emptyIds = GetEmptyTileIds(solver.TileSet);
+
             for (int r = 0; r < rows; r++)
             {
                 for (int c = 0; c < columns; c++)
@@ -35,13 +39,13 @@ namespace Assets.Scripts.Runtime.Adapters
 
                     if (IsBelowSeaLevel(worldX, worldZ) || IsOutsideBounds(worldX, worldZ))
                     {
-                        solver.ApplyConstraint(r, c, new[] { "empty" });
+                        solver.ApplyConstraint(r, c, emptyIds);
                         continue;
                     }
 
                     if (ExceedsSlopeThreshold(worldX, worldZ, cellSize))
                     {
-                        solver.ApplyConstraint(r, c, new[] { "empty" });
+                        solver.ApplyConstraint(r, c, emptyIds);
                     }
                 }
             }
@@ -49,6 +53,8 @@ namespace Assets.Scripts.Runtime.Adapters
 
         public void ApplyTerrainConstraintsVoronoi(VoronoiWFCSolver solver)
         {
+            string[] emptyIds = GetEmptyTileIds(solver.TileSet);
+
             for (int i = 0; i < solver.CellCount; i++)
             {
                 VoronoiCell cell = solver.GetCell(i);
@@ -57,7 +63,7 @@ namespace Assets.Scripts.Runtime.Adapters
 
                 if (IsBelowSeaLevel(wx, wz) || IsOutsideBounds(wx, wz))
                 {
-                    solver.ApplyConstraint(i, new[] { "empty" });
+                    solver.ApplyConstraint(i, emptyIds);
                     continue;
                 }
 
@@ -76,10 +82,15 @@ namespace Assets.Scripts.Runtime.Adapters
                     float slopeDeg = Mathf.Atan2(delta, cellSize) * Mathf.Rad2Deg;
                     if (slopeDeg > _maxRoadSlopeDegrees)
                     {
-                        solver.ApplyConstraint(i, new[] { "empty" });
+                        solver.ApplyConstraint(i, emptyIds);
                     }
                 }
             }
+        }
+
+        private static string[] GetEmptyTileIds(TileSet tileSet)
+        {
+            return tileSet.Tiles.Where(t => t.IsEmpty).Select(t => t.Id).ToArray();
         }
 
         private bool IsBelowSeaLevel(float wx, float wz)

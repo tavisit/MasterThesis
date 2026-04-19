@@ -76,7 +76,7 @@ namespace Assets.Scripts.Runtime.Voronoi
         {
             foreach (Direction dir in Enum.GetValues(typeof(Direction)))
             {
-                if (tile.GetSocket(dir) == RoadSockets.Road)
+                if (tile.GetSocket(dir) == SocketDefinitions.Road)
                 {
                     return true;
                 }
@@ -89,7 +89,7 @@ namespace Assets.Scripts.Runtime.Voronoi
         {
             foreach (Direction dir in Enum.GetValues(typeof(Direction)))
             {
-                if (a.GetSocket(dir) == RoadSockets.Road && b.GetSocket(dir.Opposite()) == RoadSockets.Road)
+                if (a.GetSocket(dir) == SocketDefinitions.Road && b.GetSocket(dir.Opposite()) == SocketDefinitions.Road)
                 {
                     return true;
                 }

@@ -479,7 +479,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Scripts.ProcedualCity.Unity.TerrainAdapter
   _terrain: {fileID: 1752497167}
-  _maxRoadSlopeDegrees: 15
+  _maxRoadSlopeDegrees: 30
   _seaLevel: 10
 --- !u!114 &1586155857
 MonoBehaviour:
@@ -493,16 +493,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a60a448ce3650424990f2560f80e8f6e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CityManager
-  _rows: 40
-  _columns: 40
-  _cellSize: 25
+  _generationMode: 0
+  _rows: 65
+  _columns: 65
+  _cellSize: 15
   _morphology: 1
+  _morphologyBlend: 0.52
+  _spatialGradient: 0
+  _nucleusFalloffWorld: 28
+  _spatialInfluence: 1
+  _gridTopologyInfluence: 1
   _seed: 0
   _maxBacktracks: 1000
   _nuclei:
   - Centre: {x: 230, y: 245}
     Radius: 100
-    Strength: 1.52
+    Strength: 1
   - Centre: {x: 800, y: 800}
     Radius: 100
     Strength: 1
@@ -513,20 +519,42 @@ MonoBehaviour:
     Radius: 100
     Strength: 1
   _voronoiResolution: 256
-  _voronoiCellSize: 30
+  _voronoiCellSize: 20
   _generateStreets: 1
   _streetMaterial: {fileID: 2100000, guid: fc9942fcaa7aa6b4c9038c4327c934db, type: 2}
   _connectionsPerComponent: 1
+  _generateBoulevard: 1
+  _boulevardLineCount: 3
+  _boulevardWidthMultiplier: 2
   _generateMetro: 1
+  _metroLineCount: 5
   _metroMaterial: {fileID: 2100000, guid: 0df476bde906a424c8f5e8ea3ecd7b06, type: 2}
-  _metroBearingPenalty: 2
+  _metroBearingPenalty: 1
   _metroStationInterval: 100
   _metroStationMaterial: {fileID: 2100000, guid: 5b198bbcdeb37ae4a824498fcc2319e4, type: 2}
   _terrainAdapter: {fileID: 1586155856}
   _meshResolution: 1
   _bridgeHeightThreshold: 10
   _tunnelHeightThreshold: 10
+  _roadMeshVerticalOffset: 0.02
+  _sidewalkMeshVerticalOffset: 0.01
   _roadSettings: {fileID: 11400000, guid: 634b1d93c0288ad4a8cce9c10c6971da, type: 2}
+  _generateStreetDecor: 1
+  _generateSidewalks: 1
+  _sidewalkMaterial: {fileID: 2100000, guid: f25cefa4501e4d14a9a4cf9e29556ca8, type: 2}
+  _sidewalkWidth: 1.2
+  _sidewalkVerticalOffset: 0.05
+  _generateLightPosts: 1
+  _lightPostPrefab: {fileID: 3139802345891708386, guid: 48f227b16b6190e4ea5c818ec0b7ec72, type: 3}
+  _lightPostInterval: 5
+  _generateSidewalkProps: 1
+  _sidewalkPropPrefabs:
+  - {fileID: 6691859456939295329, guid: 815bc15c91ddcec43a3d47c6bcadcd36, type: 3}
+  - {fileID: 4063061858130907959, guid: 8da84623e2dcfce4194b58556e37b5be, type: 3}
+  _sidewalkPropInterval: 1
+  _sidewalkPropSpawnChance: 0.5
+  _avoidRoadOverlapForDecor: 1
+  _parallelizeDecorChecks: 1
 --- !u!114 &1586155859
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -545,6 +573,9 @@ MonoBehaviour:
   _tunnelSampleInterval: 5
   _archSegments: 12
   _archThickness: 1
+  _archWidthMultiplier: 1.35
+  _metroArchWidthMultiplier: 1
+  _boulevardArchWidthMultiplier: 2.5
   _tunnelEntryExtension: 15
   _generateBridges: 1
   _bridgeHeightThreshold: 5

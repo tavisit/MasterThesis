@@ -76,4 +76,20 @@ public class NucleusConstraintApplierTests
 
         Assert.AreEqual(SolveResult.Success, solver.Solve());
     }
+
+    [Test]
+    public void NucleusConstraint_HybridTilePrefixes_SolverStillSucceeds()
+    {
+        var tileSet = HybridTileSetFactory.CreateHybridStreet(0.5f);
+        var solver = new WFCSolver(tileSet, rows: 8, columns: 8, seed: 7);
+
+        var nuclei = new List<CityNucleus>
+        {
+            new CityNucleus { Centre = new Vector2(40f, 40f), Radius = 25f, Strength = 2f }
+        };
+
+        NucleusConstraintApplier.Apply(solver, nuclei, 8, 8, 10f);
+
+        Assert.AreEqual(SolveResult.Success, solver.Solve());
+    }
 }

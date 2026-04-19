@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 
 using Assets.Scripts.Runtime.Adapters;
+using Assets.Scripts.Runtime.City;
 using Assets.Scripts.Runtime.Graph;
 using Assets.Scripts.Runtime.MeshRelated;
 
@@ -18,6 +19,9 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
     [Header("Tunnel arch shape")]
     [SerializeField] private int _archSegments = 16;
     [SerializeField] private float _archThickness = 0.6f;
+    [SerializeField] private float _archWidthMultiplier = 1.35f;
+    [SerializeField] private float _metroArchWidthMultiplier = 1.8f;
+    [SerializeField] private float _boulevardArchWidthMultiplier = 1.1f;
     [SerializeField] private float _tunnelEntryExtension = 10f;
 
     [Header("Bridge")]
@@ -33,6 +37,12 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
     [SerializeField] private TerrainAdapter _terrain;
     [SerializeField] private RoadSettings _roadSettings;
     private readonly HashSet<Vector2Int> _placedArchCells = new();
+    private CityManager _cityManager;
+
+    private void Awake()
+    {
+        _cityManager = GetComponent<CityManager>() ?? FindFirstObjectByType<CityManager>();
+    }
 
     public void ResetPlacedCells() => _placedArchCells.Clear();
 
@@ -46,10 +56,19 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
         }
 
         float hw = RoadMeshExtruder.GetHalfWidth(roadType, _roadSettings);
+        if (roadType == RoadType.Street && container != null && container.gameObject.name == "RoadSpline_Boulevard")
+        {
+            float boulevardWidth = _cityManager != null ? _cityManager.BoulevardWidthMultiplier : 1f;
+            hw *= Mathf.Max(1f, boulevardWidth * _boulevardArchWidthMultiplier);
+        }
+        else if (roadType == RoadType.Metro)
+        {
+            hw *= Mathf.Max(1f, _metroArchWidthMultiplier);
+        }
 
         if (_generateTunnels)
         {
-            PlaceTunnelArches(container, spline, length, hw);
+            PlaceTunnelArches(container, spline, length, hw * Mathf.Max(1f, _archWidthMultiplier));
         }
 
         if (_generateBridges)
@@ -159,7 +178,8 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
                 : prevDist;
             float depth = (prevDist + nextDist) * 0.5f;
 
-            Mesh archMesh = BuildArchMesh(hw, _archSegments, _archThickness, depth);
+            float thickness = Mathf.Max(_archThickness, hw * 0.22f);
+            Mesh archMesh = BuildArchMesh(hw, _archSegments, thickness, depth);
 
             var go = new GameObject("TunnelArch");
             go.transform.SetParent(container.transform, false);

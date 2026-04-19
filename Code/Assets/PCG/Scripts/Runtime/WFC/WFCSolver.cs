@@ -21,6 +21,8 @@ namespace Assets.Scripts.Runtime.WFC
         public int BacktrackCount { get; private set; }
         public int CollapseCount { get; private set; }
 
+        public TileSet TileSet => _tileSet;
+
         public WFCSolver(TileSet tileSet, int rows, int columns, int seed = 0, int maxBacktracks = 1000)
         {
             _tileSet = tileSet ?? throw new ArgumentNullException(nameof(tileSet));
@@ -34,15 +36,18 @@ namespace Assets.Scripts.Runtime.WFC
         }
 
 
-        public SolveResult Solve(int maxIterations = 1_000_000)
+        public SolveResult Solve(int maxIterations = 1_000_000, Action<float> onProgress = null)
         {
             BacktrackCount = 0;
             CollapseCount = 0;
+            int totalCells = _rows * _columns;
+            onProgress?.Invoke(0f);
 
             for (int i = 0; i < maxIterations; i++)
             {
                 if (IsFullyCollapsed())
                 {
+                    onProgress?.Invoke(1f);
                     return SolveResult.Success;
                 }
 
@@ -60,8 +65,14 @@ namespace Assets.Scripts.Runtime.WFC
 
                     BacktrackCount++;
                 }
+
+                if ((i & 31) == 0)
+                {
+                    onProgress?.Invoke(Math.Min(1f, CollapseCount / (float)totalCells));
+                }
             }
 
+            onProgress?.Invoke(IsFullyCollapsed() ? 1f : Math.Min(1f, CollapseCount / (float)totalCells));
             return IsFullyCollapsed() ? SolveResult.Success : SolveResult.IterationLimitReached;
         }
 
@@ -82,14 +93,14 @@ namespace Assets.Scripts.Runtime.WFC
         }
 
         public TileDefinition GetCollapsedTile(int row, int col)
-            => _tileSet.GetTile(_grid[row, col].CollapsedIndex);
+            => TileSet.GetTile(_grid[row, col].CollapsedIndex);
 
         public int GetCollapsedIndex(int row, int col)
             => _grid[row, col].CollapsedIndex;
 
         public bool ApplyConstraint(int row, int col, IEnumerable<string> allowedIds)
         {
-            var allowedSet = new HashSet<int>(allowedIds.Select(id => _tileSet.IndexOf(id)).Where(idx => idx >= 0));
+            var allowedSet = new HashSet<int>(allowedIds.Select(id => TileSet.IndexOf(id)).Where(idx => idx >= 0));
             WFCCell cell = _grid[row, col];
 
             var toRemove = cell.Candidates.Where(idx => !allowedSet.Contains(idx)).ToList();
@@ -179,7 +190,7 @@ namespace Assets.Scripts.Runtime.WFC
                     var allowed = new HashSet<int>();
                     foreach (int candidate in cell.Candidates)
                     {
-                        foreach (int compatible in _tileSet.GetCompatible(candidate, dir))
+                        foreach (int compatible in TileSet.GetCompatible(candidate, dir))
                         {
                             allowed.Add(compatible);
                         }
@@ -252,7 +263,7 @@ namespace Assets.Scripts.Runtime.WFC
             {
                 for (int c = 0; c < _columns; c++)
                 {
-                    _grid[r, c] = new WFCCell(r, c, _tileSet);
+                    _grid[r, c] = new WFCCell(r, c, TileSet);
                 }
             }
         }

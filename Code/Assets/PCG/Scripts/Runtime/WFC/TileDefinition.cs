@@ -49,6 +49,16 @@ namespace Assets.Scripts.Runtime.WFC
         };
     }
 
+    [Flags]
+    public enum RoadSocketFlags
+    {
+        None = 0,
+        North = 1 << 0,
+        East = 1 << 1,
+        South = 1 << 2,
+        West = 1 << 3
+    }
+
     public sealed class TileDefinition
     {
         public string Id { get; }
@@ -79,6 +89,49 @@ namespace Assets.Scripts.Runtime.WFC
 
         public Socket GetSocket(Direction d) => _sockets[(int)d];
 
+        public bool IsEmpty
+        {
+            get
+            {
+                var none = new Socket("none");
+                return GetSocket(Direction.North) == none
+                    && GetSocket(Direction.East) == none
+                    && GetSocket(Direction.South) == none
+                    && GetSocket(Direction.West) == none;
+            }
+        }
+
+        public RoadSocketFlags Sockets
+        {
+            get
+            {
+                RoadSocketFlags result = RoadSocketFlags.None;
+                var noneSocket = new Socket("none");
+
+                if (_sockets[(int)Direction.North] != noneSocket)
+                {
+                    result |= RoadSocketFlags.North;
+                }
+
+                if (_sockets[(int)Direction.East] != noneSocket)
+                {
+                    result |= RoadSocketFlags.East;
+                }
+
+                if (_sockets[(int)Direction.South] != noneSocket)
+                {
+                    result |= RoadSocketFlags.South;
+                }
+
+                if (_sockets[(int)Direction.West] != noneSocket)
+                {
+                    result |= RoadSocketFlags.West;
+                }
+
+                return result;
+            }
+        }
+
         public override string ToString() => $"Tile({Id})";
 
 
@@ -89,7 +142,9 @@ namespace Assets.Scripts.Runtime.WFC
         private readonly TileDefinition[] _tiles;
         private readonly HashSet<int>[][] _adjacency;
 
-        public int Count => _tiles.Length;
+        public int Count => Tiles.Length;
+
+        public TileDefinition[] Tiles => _tiles;
 
         public TileSet(IReadOnlyList<TileDefinition> tiles)
         {
@@ -119,12 +174,12 @@ namespace Assets.Scripts.Runtime.WFC
             foreach (Direction dir in Enum.GetValues(typeof(Direction)))
             {
                 Direction opp = dir.Opposite();
-                for (int a = 0; a < _tiles.Length; a++)
+                for (int a = 0; a < Tiles.Length; a++)
                 {
-                    Socket socketA = _tiles[a].GetSocket(dir);
-                    for (int b = 0; b < _tiles.Length; b++)
+                    Socket socketA = Tiles[a].GetSocket(dir);
+                    for (int b = 0; b < Tiles.Length; b++)
                     {
-                        if (socketA == _tiles[b].GetSocket(opp))
+                        if (socketA == Tiles[b].GetSocket(opp))
                         {
                             _adjacency[a][(int)dir].Add(b);
                         }
@@ -133,11 +188,11 @@ namespace Assets.Scripts.Runtime.WFC
             }
         }
 
-        public TileDefinition GetTile(int index) => _tiles[index];
+        public TileDefinition GetTile(int index) => Tiles[index];
         public IReadOnlyCollection<int> GetCompatible(int tileIndex, Direction dir) => _adjacency[tileIndex][(int)dir];
         public TileDefinition GetTileById(string id)
         {
-            foreach (var tile in _tiles)
+            foreach (var tile in Tiles)
             {
                 if (tile.Id == id)
                 {
@@ -149,9 +204,9 @@ namespace Assets.Scripts.Runtime.WFC
         }
         public int IndexOf(string tileId)
         {
-            for (int i = 0; i < _tiles.Length; i++)
+            for (int i = 0; i < Tiles.Length; i++)
             {
-                if (_tiles[i].Id == tileId)
+                if (Tiles[i].Id == tileId)
                 {
                     return i;
                 }

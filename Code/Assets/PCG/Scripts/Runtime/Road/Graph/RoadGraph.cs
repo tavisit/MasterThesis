@@ -12,12 +12,14 @@ namespace Assets.Scripts.Runtime.Graph
         public int Id { get; }
         public Vector3 Position { get; set; }
         public RoadType Type { get; }
+        public Vector2Int SourceCellPosition { get; set; }
 
         public RoadNode(int id, Vector3 position, RoadType type)
         {
             Id = id;
             Position = position;
             Type = type;
+            SourceCellPosition = Vector2Int.zero;
         }
     }
 
@@ -40,15 +42,31 @@ namespace Assets.Scripts.Runtime.Graph
         private readonly List<RoadNode> _nodes = new();
         private readonly List<RoadEdge> _edges = new();
         private int _nextId;
+        private readonly RoadType _defaultType;
 
         public IReadOnlyList<RoadNode> Nodes => _nodes;
         public IReadOnlyList<RoadEdge> Edges => _edges;
+
+        public RoadGraph(RoadType defaultType = RoadType.Street)
+        {
+            _defaultType = defaultType;
+        }
+
+        public RoadNode AddNode(Vector3 position)
+        {
+            return AddNode(position, _defaultType);
+        }
 
         public RoadNode AddNode(Vector3 position, RoadType type)
         {
             var node = new RoadNode(_nextId++, position, type);
             _nodes.Add(node);
             return node;
+        }
+
+        public RoadEdge AddEdge(RoadNode from, RoadNode to)
+        {
+            return AddEdge(from, to, _defaultType);
         }
 
         public RoadEdge AddEdge(RoadNode from, RoadNode to, RoadType type)
@@ -93,6 +111,11 @@ namespace Assets.Scripts.Runtime.Graph
             var connected = new HashSet<RoadNode>();
             foreach (var edge in _edges) { connected.Add(edge.From); connected.Add(edge.To); }
             _nodes.RemoveAll(n => !connected.Contains(n));
+        }
+
+        public List<List<RoadNode>> GetConnectedComponents()
+        {
+            return RoadGraphConnector.FindComponents(this);
         }
 
         public List<List<RoadNode>> ExtractChains()
