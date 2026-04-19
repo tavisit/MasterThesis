@@ -20,11 +20,14 @@ namespace Assets.Scripts.Runtime.WFC
         public int CollapseCount { get; private set; }
         public SolveResult LastResult { get; private set; }
 
+        public TileSet TileSet => _tileSet;
+
         public VoronoiWFCSolver(
             TileSet tileSet,
             List<VoronoiCell> cells,
             int seed = 0,
-            int maxBacktracks = 1000)
+            int maxBacktracks = 1000,
+            float[] organicBiasPerCell = null)
         {
             _tileSet = tileSet ?? throw new ArgumentNullException(nameof(tileSet));
             _cells = cells ?? throw new ArgumentNullException(nameof(cells));
@@ -35,19 +38,28 @@ namespace Assets.Scripts.Runtime.WFC
             _nodes = new VoronoiWFCNode[cells.Count];
             for (int i = 0; i < cells.Count; i++)
             {
-                _nodes[i] = new VoronoiWFCNode(i, tileSet);
+                float bias = 0.5f;
+                if (organicBiasPerCell != null && i < organicBiasPerCell.Length)
+                {
+                    bias = organicBiasPerCell[i];
+                }
+
+                _nodes[i] = new VoronoiWFCNode(i, tileSet, bias);
             }
         }
 
-        public SolveResult Solve(int maxIterations = 1_000_000)
+        public SolveResult Solve(int maxIterations = 1_000_000, Action<float> onProgress = null)
         {
             BacktrackCount = 0;
             CollapseCount = 0;
+            int totalCells = Math.Max(1, _nodes.Length);
+            onProgress?.Invoke(0f);
 
             for (int i = 0; i < maxIterations; i++)
             {
                 if (IsFullyCollapsed())
                 {
+                    onProgress?.Invoke(1f);
                     return LastResult = SolveResult.Success;
                 }
 
@@ -65,8 +77,14 @@ namespace Assets.Scripts.Runtime.WFC
 
                     BacktrackCount++;
                 }
+
+                if ((i & 31) == 0)
+                {
+                    onProgress?.Invoke(Math.Min(1f, CollapseCount / (float)totalCells));
+                }
             }
 
+            onProgress?.Invoke(IsFullyCollapsed() ? 1f : Math.Min(1f, CollapseCount / (float)totalCells));
             return LastResult = IsFullyCollapsed() ? SolveResult.Success : SolveResult.IterationLimitReached;
         }
 
@@ -223,6 +241,7 @@ namespace Assets.Scripts.Runtime.WFC
     public sealed class VoronoiWFCNode
     {
         private readonly TileSet _tileSet;
+        private readonly float _organicBias;
         private readonly HashSet<int> _candidates;
         private double _cachedEntropy;
         private bool _entropyDirty;
@@ -245,10 +264,11 @@ namespace Assets.Scripts.Runtime.WFC
             }
         }
 
-        public VoronoiWFCNode(int cellId, TileSet tileSet)
+        public VoronoiWFCNode(int cellId, TileSet tileSet, float organicBias = 0.5f)
         {
             CellId = cellId;
             _tileSet = tileSet;
+            _organicBias = organicBias;
             _candidates = new HashSet<int>(Enumerable.Range(0, tileSet.Count));
             _entropyDirty = true;
         }
@@ -278,27 +298,43 @@ namespace Assets.Scripts.Runtime.WFC
             }
 
             double wSum = 0, wlwSum = 0;
-            foreach (int idx in _candidates) { double w = _tileSet.GetTile(idx).Weight; wSum += w; wlwSum += w * Math.Log(w); }
+            foreach (int idx in _candidates)
+            {
+                var tile = _tileSet.GetTile(idx);
+                double w = tile.Weight * HybridTileWeightMultiplier.ForOrganicBias(tile, _organicBias);
+                wSum += w;
+                wlwSum += w * Math.Log(w);
+            }
+
             return Math.Log(wSum) - wlwSum / wSum;
         }
 
         public int SampleCandidate(double u)
         {
-            double total = _candidates.Sum(i => _tileSet.GetTile(i).Weight);
+            double total = 0;
+            foreach (int idx in _candidates)
+            {
+                var tile = _tileSet.GetTile(idx);
+                total += tile.Weight * HybridTileWeightMultiplier.ForOrganicBias(tile, _organicBias);
+            }
+
             double cum = 0;
             foreach (int idx in _candidates)
             {
-                cum += _tileSet.GetTile(idx).Weight; if (cum >= u * total)
+                var tile = _tileSet.GetTile(idx);
+                cum += tile.Weight * HybridTileWeightMultiplier.ForOrganicBias(tile, _organicBias);
+                if (cum >= u * total)
                 {
                     return idx;
                 }
             }
+
             return _candidates.Last();
         }
 
         public VoronoiWFCNode Clone()
         {
-            var c = new VoronoiWFCNode(CellId, _tileSet);
+            var c = new VoronoiWFCNode(CellId, _tileSet, _organicBias);
             c._candidates.Clear();
             foreach (int idx in _candidates)
             {

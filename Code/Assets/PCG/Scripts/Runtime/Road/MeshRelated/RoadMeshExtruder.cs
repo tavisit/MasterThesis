@@ -16,8 +16,14 @@ namespace Assets.Scripts.Runtime.MeshRelated
         [SerializeField] private int _resolution = 1;
         [SerializeField] private Material _roadMaterial;
         [SerializeField] private RoadSettings _roadSettings;
+        [SerializeField] private float _widthMultiplier = 1f;
+        [SerializeField] private float _meshVerticalOffset = 0f;
+        [SerializeField] private int _laneCount = 2;
 
         public RoadType RoadType { get => _type; set => _type = value; }
+        public float WidthMultiplier { get => _widthMultiplier; set => _widthMultiplier = value; }
+        public float MeshVerticalOffset { get => _meshVerticalOffset; set => _meshVerticalOffset = value; }
+        public int LaneCount { get => _laneCount; set => _laneCount = Mathf.Max(1, value); }
         public int Resolution { get => _resolution; set => _resolution = value; }
         public RoadSettings RoadSettings
         {
@@ -93,7 +99,7 @@ namespace Assets.Scripts.Runtime.MeshRelated
             }
 
             var spline = _container.Spline;
-            float hw = _roadSettings.GetHalfWidth(_type);
+            float hw = _roadSettings.GetHalfWidth(_type) * Mathf.Max(0.01f, _widthMultiplier);
             float kerbH = _roadSettings.GetKerbHeight(_type);
             float kerbW = _roadSettings.GetKerbWidth(_type);
             float length = spline.GetLength();
@@ -111,15 +117,33 @@ namespace Assets.Scripts.Runtime.MeshRelated
             var verts = new Vector3[rings * vPerRing];
             var uvs = new Vector2[rings * vPerRing];
             var tris = new int[(rings - 1) * quadsPerSeg * 6];
+            Vector3 lastTang = Vector3.forward;
+            Vector3 lastUp = Vector3.up;
 
             for (int i = 0; i < rings; i++)
             {
                 float t = (float)i / (rings - 1);
                 spline.Evaluate(t, out var pos, out var tangent, out var upVec);
 
-                Vector3 p = pos;
-                Vector3 tang = ((Vector3)tangent).normalized;
-                Vector3 up = ((Vector3)upVec).normalized;
+                Vector3 p = (Vector3)pos + (Vector3)upVec * _meshVerticalOffset;
+                Vector3 rawTang = (Vector3)tangent;
+                Vector3 rawUp = (Vector3)upVec;
+                if (!IsFinite(p))
+                {
+                    Debug.LogWarning($"[RoadMeshExtruder] Invalid spline sample on {gameObject.name}. Rebuild skipped.");
+                    return;
+                }
+
+                Vector3 tang = rawTang.sqrMagnitude > 1e-6f && IsFinite(rawTang)
+                    ? rawTang.normalized
+                    : lastTang;
+                Vector3 up = rawUp.sqrMagnitude > 1e-6f && IsFinite(rawUp)
+                    ? rawUp.normalized
+                    : lastUp;
+                if (Vector3.Dot(up, tang) > 0.995f || Vector3.Dot(up, tang) < -0.995f)
+                {
+                    up = lastUp;
+                }
                 Vector3 right = Vector3.Cross(up, tang).normalized;
 
                 if (right.sqrMagnitude < 0.01f)
@@ -132,6 +156,13 @@ namespace Assets.Scripts.Runtime.MeshRelated
 
                     right = Vector3.Cross(up, worldRight).normalized;
                 }
+                if (!IsFinite(right) || right.sqrMagnitude < 1e-6f)
+                {
+                    right = Vector3.right;
+                }
+
+                lastTang = tang;
+                lastUp = up;
 
                 Vector3 kerbUp = up * kerbH;
                 int b = i * vPerRing;
@@ -174,7 +205,33 @@ namespace Assets.Scripts.Runtime.MeshRelated
             mesh.SetTriangles(tris, 0);
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
+            if (!IsFinite(mesh.bounds.min) || !IsFinite(mesh.bounds.max))
+            {
+                Debug.LogWarning($"[RoadMeshExtruder] Skipped invalid mesh bounds on {gameObject.name}.");
+                return;
+            }
             _filter.sharedMesh = mesh;
+            ApplyLaneShaderProperties();
+        }
+
+        private static bool IsFinite(Vector3 v)
+        {
+            return !float.IsNaN(v.x) && !float.IsInfinity(v.x) &&
+                   !float.IsNaN(v.y) && !float.IsInfinity(v.y) &&
+                   !float.IsNaN(v.z) && !float.IsInfinity(v.z);
+        }
+
+        private void ApplyLaneShaderProperties()
+        {
+            if (_renderer == null)
+            {
+                return;
+            }
+
+            var block = new MaterialPropertyBlock();
+            _renderer.GetPropertyBlock(block);
+            block.SetFloat("_LaneCount", Mathf.Max(1, _laneCount));
+            _renderer.SetPropertyBlock(block);
         }
 
 #if UNITY_EDITOR

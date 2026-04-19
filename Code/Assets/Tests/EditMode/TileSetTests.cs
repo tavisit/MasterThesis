@@ -61,10 +61,10 @@ public class TileSetTests
         var tileSet = RoadTileSetFactory.CreateStreet();
         var tile = tileSet.GetTileById("road_ns");
 
-        Assert.AreEqual(RoadSockets.Road, tile.GetSocket(Direction.North));
-        Assert.AreEqual(RoadSockets.None, tile.GetSocket(Direction.East));
-        Assert.AreEqual(RoadSockets.Road, tile.GetSocket(Direction.South));
-        Assert.AreEqual(RoadSockets.None, tile.GetSocket(Direction.West));
+        Assert.AreEqual(SocketDefinitions.Road, tile.GetSocket(Direction.North));
+        Assert.AreEqual(SocketDefinitions.None, tile.GetSocket(Direction.East));
+        Assert.AreEqual(SocketDefinitions.Road, tile.GetSocket(Direction.South));
+        Assert.AreEqual(SocketDefinitions.None, tile.GetSocket(Direction.West));
     }
 
     [Test]
@@ -75,7 +75,7 @@ public class TileSetTests
 
         foreach (Direction dir in System.Enum.GetValues(typeof(Direction)))
         {
-            Assert.AreEqual(RoadSockets.Road, tile.GetSocket(dir), $"Expected Road on {dir}");
+            Assert.AreEqual(SocketDefinitions.Road, tile.GetSocket(dir), $"Expected Road on {dir}");
         }
     }
 
@@ -87,7 +87,7 @@ public class TileSetTests
 
         foreach (Direction dir in System.Enum.GetValues(typeof(Direction)))
         {
-            Assert.AreEqual(RoadSockets.None, tile.GetSocket(dir), $"Expected None on {dir}");
+            Assert.AreEqual(SocketDefinitions.None, tile.GetSocket(dir), $"Expected None on {dir}");
         }
     }
 }

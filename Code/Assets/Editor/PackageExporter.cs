@@ -7,11 +7,7 @@ public static class PackageExporter
 {
     public static void Export()
     {
-        string[] assetPaths = { "Assets/PCG/Scripts",
-            "Assets/PCG/Materials",
-            "Assets/PCG/Scenes",
-            "Assets/PCG/README.md"
-        };
+        string[] assetPaths = { "Assets/PCG" };
 
         Directory.CreateDirectory("Builds");
 

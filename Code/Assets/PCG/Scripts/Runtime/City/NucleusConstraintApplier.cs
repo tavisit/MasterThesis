@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 using Assets.Scripts.Runtime.WFC;
 
@@ -31,6 +32,8 @@ namespace Assets.Scripts.Runtime.City
                 return;
             }
 
+            bool hasHybridTilePrefixes = TileSetHasHybridPrefixes(solver);
+
             for (int r = 0; r < rows; r++)
             {
                 for (int c = 0; c < columns; c++)
@@ -46,7 +49,7 @@ namespace Assets.Scripts.Runtime.City
                         continue;
                     }
 
-                    ApplyTileConstraint(solver, r, c, maxInfluence, maxStrength);
+                    ApplyTileConstraint(solver, r, c, maxInfluence, maxStrength, hasHybridTilePrefixes);
                 }
             }
         }
@@ -61,6 +64,8 @@ namespace Assets.Scripts.Runtime.City
                 return;
             }
 
+            bool hasHybridTilePrefixes = TileSetHasHybridPrefixes(solver.TileSet);
+
             int cellCount = solver.CellCount;
             for (int i = 0; i < cellCount; i++)
             {
@@ -74,7 +79,7 @@ namespace Assets.Scripts.Runtime.City
                     continue;
                 }
 
-                ApplyVoronoiTileConstraint(solver, i, maxInfluence, maxStrength);
+                ApplyVoronoiTileConstraint(solver, i, maxInfluence, maxStrength, hasHybridTilePrefixes);
             }
         }
 
@@ -116,19 +121,81 @@ namespace Assets.Scripts.Runtime.City
             }
         }
 
+        private static bool TileSetHasHybridPrefixes(WFCSolver solver)
+            => TileSetHasHybridPrefixes(solver.TileSet);
+
+        private static bool TileSetHasHybridPrefixes(TileSet tileSet)
+        {
+            // Check if any tile has grid_, organic_, or transition_ prefix
+            foreach (var tile in tileSet.Tiles)
+            {
+                if (tile.Id.StartsWith("grid_") ||
+                    tile.Id.StartsWith("organic_") ||
+                    tile.Id.StartsWith("transition_"))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private static void ApplyTileConstraint(
             WFCSolver solver, int row, int col,
-            float maxInfluence, float maxStrength)
+            float maxInfluence, float maxStrength, bool hasHybridTilePrefixes)
         {
-            var allowed = new List<string>(_roadTileIds) { "empty" };
-            solver.ApplyConstraint(row, col, allowed);
+            List<string> allowed;
+
+            if (hasHybridTilePrefixes)
+            {
+                // For hybrid tiles, allow all road tiles regardless of prefix
+                allowed = new List<string>();
+
+                foreach (var tile in solver.TileSet.Tiles)
+                {
+                    string id = tile.Id;
+                    if (id.EndsWith("empty") ||
+                        id.Contains("road_ns") || id.Contains("road_ew") ||
+                        id.Contains("corner_") ||
+                        id.Contains("_t_") ||
+                        id.Contains("cross"))
+                    {
+                        allowed.Add(id);
+                    }
+                }
+            }
+            else
+            {
+                allowed = new List<string>(_roadTileIds) { "empty" };
+            }
+
+            if (allowed.Count > 0)
+            {
+                solver.ApplyConstraint(row, col, allowed);
+            }
         }
 
         private static void ApplyVoronoiTileConstraint(
             VoronoiWFCSolver solver, int cellId,
-            float maxInfluence, float maxStrength)
+            float maxInfluence, float maxStrength, bool hasHybridTilePrefixes)
         {
-            var allowed = new List<string>(_roadTileIds) { "empty" };
+            List<string> allowed;
+            if (hasHybridTilePrefixes)
+            {
+                allowed = solver.TileSet.Tiles
+                    .Select(t => t.Id)
+                    .Where(id =>
+                        id.EndsWith("empty") ||
+                        id.Contains("road_ns") || id.Contains("road_ew") ||
+                        id.Contains("corner_") ||
+                        id.Contains("_t_") ||
+                        id.Contains("cross"))
+                    .ToList();
+            }
+            else
+            {
+                allowed = new List<string>(_roadTileIds) { "empty" };
+            }
+
             solver.ApplyConstraint(cellId, allowed);
         }
     }

@@ -4,7 +4,7 @@ using Assets.Scripts.Runtime.WFC;
 
 namespace Assets.Scripts.Runtime.City
 {
-    public static class RoadSockets
+    public static class SocketDefinitions
     {
         public static readonly Socket Road = new Socket("road");
         public static readonly Socket Metro = new Socket("metro");
@@ -19,8 +19,8 @@ namespace Assets.Scripts.Runtime.City
             => morphology == UrbanMorphology.Organic ? CreateOrganicStreet() : CreateGridStreet();
         private static TileSet CreateGridStreet()
         {
-            var road = RoadSockets.Road;
-            var none = RoadSockets.None;
+            var road = SocketDefinitions.Road;
+            var none = SocketDefinitions.None;
 
             return new TileSet(new List<TileDefinition>
             {
@@ -40,8 +40,8 @@ namespace Assets.Scripts.Runtime.City
         }
         private static TileSet CreateOrganicStreet()
         {
-            var road = RoadSockets.Road;
-            var none = RoadSockets.None;
+            var road = SocketDefinitions.Road;
+            var none = SocketDefinitions.None;
 
             return new TileSet(new List<TileDefinition>
             {
@@ -61,8 +61,8 @@ namespace Assets.Scripts.Runtime.City
         }
         public static TileSet CreateMetro()
         {
-            var metro = RoadSockets.Metro;
-            var none = RoadSockets.None;
+            var metro = SocketDefinitions.Metro;
+            var none = SocketDefinitions.None;
 
             return new TileSet(new List<TileDefinition>
             {
