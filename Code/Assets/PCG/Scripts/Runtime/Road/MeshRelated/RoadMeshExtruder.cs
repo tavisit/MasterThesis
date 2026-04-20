@@ -101,7 +101,6 @@ namespace Assets.Scripts.Runtime.MeshRelated
             var spline = _container.Spline;
             float hw = _roadSettings.GetHalfWidth(_type) * Mathf.Max(0.01f, _widthMultiplier);
             float kerbH = _roadSettings.GetKerbHeight(_type);
-            float kerbW = _roadSettings.GetKerbWidth(_type);
             float length = spline.GetLength();
 
             if (length <= 0f)
@@ -109,10 +108,9 @@ namespace Assets.Scripts.Runtime.MeshRelated
                 return;
             }
 
-            float camber = kerbH * 0.5f;
             int rings = Mathf.Max(2, Mathf.CeilToInt(length / _resolution));
-            int vPerRing = 7;
-            int quadsPerSeg = 6;
+            int vPerRing = 3;
+            int quadsPerSeg = 2;
 
             var verts = new Vector3[rings * vPerRing];
             var uvs = new Vector2[rings * vPerRing];
@@ -164,23 +162,16 @@ namespace Assets.Scripts.Runtime.MeshRelated
                 lastTang = tang;
                 lastUp = up;
 
-                Vector3 kerbUp = up * kerbH;
                 int b = i * vPerRing;
                 float v = t * length;
+                float camber = kerbH * 0.35f;
 
-                verts[b + 0] = p - right * (hw + kerbW);
-                verts[b + 1] = p - right * hw + kerbUp;
-                verts[b + 2] = p - right * hw;
-                verts[b + 3] = p + up * camber;
-                verts[b + 4] = p + right * hw;
-                verts[b + 5] = p + right * hw + kerbUp;
-                verts[b + 6] = p + right * (hw + kerbW);
-
-                float[] us = { 0f, 0.1f, 0.15f, 0.5f, 0.85f, 0.9f, 1f };
-                for (int j = 0; j < vPerRing; j++)
-                {
-                    uvs[b + j] = new Vector2(us[j], v);
-                }
+                verts[b + 0] = p - right * hw;
+                verts[b + 1] = p + up * camber;
+                verts[b + 2] = p + right * hw;
+                uvs[b + 0] = new Vector2(0f, v);
+                uvs[b + 1] = new Vector2(0.5f, v);
+                uvs[b + 2] = new Vector2(1f, v);
             }
 
             int ti = 0;

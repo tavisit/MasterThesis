@@ -222,7 +222,7 @@ namespace Assets.Scripts.Runtime.Road.Generators
                     right = Vector3.right;
                 }
 
-                float inner = halfWidth + kerbWidth;
+                float inner = Mathf.Max(0.01f, halfWidth);
                 float outer = inner + width;
                 int b = i * 4;
 
@@ -261,7 +261,44 @@ namespace Assets.Scripts.Runtime.Road.Generators
             var mf = go.AddComponent<MeshFilter>();
             mf.sharedMesh = mesh;
             var mr = go.AddComponent<MeshRenderer>();
-            mr.sharedMaterial = manager.SidewalkMaterial != null ? manager.SidewalkMaterial : manager.StreetMaterial;
+            mr.sharedMaterial = ResolveSidewalkMaterial(container, manager);
+        }
+
+        private static Material ResolveSidewalkMaterial(SplineContainer container, CityManager manager)
+        {
+            Material defaultMat = manager.SidewalkMaterial != null ? manager.SidewalkMaterial : manager.StreetMaterial;
+            Material nucleusMat = manager.SidewalkNucleusMaterial;
+            CityNucleus[] nuclei = manager.Nuclei;
+
+            if (container == null || container.Spline == null || nucleusMat == null || nuclei == null || nuclei.Length == 0)
+            {
+                return defaultMat;
+            }
+
+            float length = container.Spline.GetLength();
+            int sampleCount = Mathf.Clamp(Mathf.CeilToInt(length / 20f), 5, 17);
+            int insideCount = 0;
+
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t = sampleCount == 1 ? 0f : i / (float)(sampleCount - 1);
+                container.Spline.Evaluate(t, out var pos3, out _, out _);
+                Vector3 worldPos = container.transform.TransformPoint((Vector3)pos3);
+                Vector2 worldPosXZ = new Vector2(worldPos.x, worldPos.z);
+
+                for (int n = 0; n < nuclei.Length; n++)
+                {
+                    float radius = Mathf.Max(0f, nuclei[n].Radius);
+                    Vector2 d = worldPosXZ - nuclei[n].Centre;
+                    if (d.sqrMagnitude <= radius * radius)
+                    {
+                        insideCount++;
+                        break;
+                    }
+                }
+            }
+
+            return insideCount * 2 >= sampleCount ? nucleusMat : defaultMat;
         }
 
         private static void PlaceLightPosts(
@@ -279,7 +316,7 @@ namespace Assets.Scripts.Runtime.Road.Generators
 
             float interval = Mathf.Max(8f, manager.LightPostInterval);
             float sidewalkWidth = Mathf.Max(0.2f, manager.SidewalkWidth);
-            float offset = halfWidth + kerbWidth + sidewalkWidth * 0.5f;
+            float offset = halfWidth + sidewalkWidth;
             int index = 0;
             var candidates = new List<(Vector3 localPos, Vector3 tangent, Vector3 up, Vector3 worldPos)>();
 
@@ -423,7 +460,8 @@ namespace Assets.Scripts.Runtime.Road.Generators
 
             float interval = Mathf.Max(10f, manager.SidewalkPropInterval);
             float spawnChance = Mathf.Clamp01(manager.SidewalkPropSpawnChance);
-            float sideOffset = halfWidth + kerbWidth + Mathf.Max(0.2f, manager.SidewalkWidth) * 0.6f;
+            float sidewalkWidth = Mathf.Max(0.2f, manager.SidewalkWidth);
+            float sidewalkCenterOffset = halfWidth + sidewalkWidth;
             int seed = container.gameObject.GetInstanceID() ^ Mathf.RoundToInt(length * 10f);
             var rng = new System.Random(seed);
             var candidates = new List<(Vector3 worldPos, Quaternion worldRot, GameObject prefab)>();
@@ -447,7 +485,7 @@ namespace Assets.Scripts.Runtime.Road.Generators
                 }
 
                 float side = rng.NextDouble() < 0.5 ? -1f : 1f;
-                Vector3 localPos = p + right * side * sideOffset;
+                Vector3 localPos = p + right * side * sidewalkCenterOffset;
 
                 int pick = rng.Next(prefabs.Count);
                 GameObject prefab = prefabs[pick];

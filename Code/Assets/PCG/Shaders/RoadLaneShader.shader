@@ -5,7 +5,6 @@ Shader "PCG/Road Lane Shader"
         _BaseColor ("Base Color", Color) = (0.12, 0.12, 0.12, 1)
         _LaneColor ("Lane Marking Color", Color) = (0.96, 0.96, 0.92, 1)
         _CenterLineColor ("Center Line Color", Color) = (0.95, 0.78, 0.15, 1)
-        _AsphaltNoise ("Asphalt Noise", 2D) = "gray" {}
         _AsphaltTiling ("Asphalt Tiling", Float) = 0.35
         _LaneCount ("Lane Count", Float) = 2
         _LaneLineWidth ("Lane Line Width", Range(0.002, 0.06)) = 0.012
@@ -42,7 +41,6 @@ Shader "PCG/Road Lane Shader"
                 float4 pos : SV_POSITION;
             };
 
-            sampler2D _AsphaltNoise;
             float4 _BaseColor;
             float4 _LaneColor;
             float4 _CenterLineColor;
@@ -71,10 +69,29 @@ Shader "PCG/Road Lane Shader"
                 return saturate(1.0 - smoothstep(width * 0.5, width, d));
             }
 
+            float hash21(float2 p)
+            {
+                p = frac(p * float2(123.34, 456.21));
+                p += dot(p, p + 45.32);
+                return frac(p.x * p.y);
+            }
+
+            float valueNoise(float2 p)
+            {
+                float2 i = floor(p);
+                float2 f = frac(p);
+                float2 u = f * f * (3.0 - 2.0 * f);
+                float a = hash21(i);
+                float b = hash21(i + float2(1.0, 0.0));
+                float c = hash21(i + float2(0.0, 1.0));
+                float d = hash21(i + float2(1.0, 1.0));
+                return lerp(lerp(a, b, u.x), lerp(c, d, u.x), u.y);
+            }
+
             fixed4 frag(v2f i) : SV_Target
             {
                 float2 nuv = i.worldPos.xz * _AsphaltTiling;
-                float noise = tex2D(_AsphaltNoise, nuv).r;
+                float noise = valueNoise(nuv);
                 float3 col = _BaseColor.rgb * (0.85 + noise * 0.22);
 
                 float roadSpan = max(0.001, _RoadEndU - _RoadStartU);

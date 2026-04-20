@@ -89,7 +89,8 @@ namespace Assets.Scripts.Runtime.City
         [SerializeField] private bool _generateStreetDecor = true;
         [SerializeField] private bool _generateSidewalks = true;
         [SerializeField] private Material _sidewalkMaterial;
-        [SerializeField] private float _sidewalkWidth = 1.2f;
+        [SerializeField] private Material _sidewalkNucleusMaterial;
+        [SerializeField] private float _sidewalkWidth = 1.0f;
         [SerializeField] private float _sidewalkVerticalOffset = 0.05f;
         [SerializeField] private bool _generateLightPosts = true;
         [SerializeField] private GameObject _lightPostPrefab;
@@ -160,6 +161,7 @@ namespace Assets.Scripts.Runtime.City
         public bool GenerateStreetDecor => _generateStreetDecor;
         public bool GenerateSidewalks => _generateSidewalks;
         public Material SidewalkMaterial => _sidewalkMaterial;
+        public Material SidewalkNucleusMaterial => _sidewalkNucleusMaterial;
         public float SidewalkWidth => _sidewalkWidth;
         public float SidewalkVerticalOffset => _sidewalkVerticalOffset;
         public bool GenerateLightPosts => _generateLightPosts;
@@ -228,13 +230,6 @@ namespace Assets.Scripts.Runtime.City
                 }
 #endif
             }
-        }
-
-        public void RegenerateMeshes()
-        {
-            SplineGenerator.Clear();
-            _splineGenerator = new SplineRoadGenerator(this);
-            _splineGenerator.Generate();
         }
 
         [ContextMenu("Clear City")]

@@ -63,11 +63,6 @@ namespace Assets.Scripts.Editor
 
             EditorGUILayout.EndHorizontal();
 
-            if (GUILayout.Button("Regenerate Meshes Only", GUILayout.Height(25)))
-            {
-                manager.RegenerateMeshes();
-            }
-
             EditorGUILayout.Space(8);
             DrawCoreSections();
 
@@ -141,6 +136,7 @@ namespace Assets.Scripts.Editor
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_metroMaterial"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_metroStationMaterial"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_sidewalkMaterial"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_sidewalkNucleusMaterial"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_roadMeshVerticalOffset"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_sidewalkMeshVerticalOffset"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_meshResolution"));

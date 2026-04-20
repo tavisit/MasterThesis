@@ -772,34 +772,6 @@ namespace Assets.Scripts.Runtime.Road.Generators
             float pillarH = Mathf.Max(0.1f, aboveTerrain +
                             RoadMeshExtruder.GetHalfWidth(RoadType.Metro, _roadSettings));
 
-            var verts = new List<Vector3>
-            {
-                new Vector3(-platformW * 0.5f, 0f,      -platformL * 0.5f),
-                new Vector3( platformW * 0.5f, 0f,      -platformL * 0.5f),
-                new Vector3( platformW * 0.5f, 0f,       platformL * 0.5f),
-                new Vector3(-platformW * 0.5f, 0f,       platformL * 0.5f),
-                new Vector3(-platformW * 0.5f, pillarH, -platformL * 0.5f),
-                new Vector3( platformW * 0.5f, pillarH, -platformL * 0.5f),
-                new Vector3( platformW * 0.5f, pillarH,  platformL * 0.5f),
-                new Vector3(-platformW * 0.5f, pillarH,  platformL * 0.5f),
-            };
-
-            var tris = new List<int>
-            {
-                0, 1, 2,  0, 2, 3,
-                4, 6, 5,  4, 7, 6,
-                0, 5, 1,  0, 4, 5,
-                2, 7, 3,  2, 6, 7,
-                3, 4, 0,  3, 7, 4,
-                1, 6, 2,  1, 5, 6,
-            };
-
-            var mesh = new Mesh { name = "MetroStation" };
-            mesh.SetVertices(verts);
-            mesh.SetTriangles(tris, 0);
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-
             var go = new GameObject(forced ? "MetroStation_Terminal" : "MetroStation");
             go.transform.SetParent(stationsParent.transform, false);
             go.transform.position = new Vector3(railPos.x, terrainH, railPos.z);
@@ -809,8 +781,63 @@ namespace Assets.Scripts.Runtime.Road.Generators
                 go.transform.rotation = Quaternion.LookRotation(tangent, Vector3.up);
             }
 
-            go.AddComponent<MeshFilter>().sharedMesh = mesh;
-            go.AddComponent<MeshRenderer>().sharedMaterial = _manager.MetroStationMaterial;
+            BuildStationSlices(
+                go.transform,
+                pillarH,
+                platformW,
+                platformL,
+                _manager.MetroStationMaterial);
+        }
+
+        private static void BuildStationSlices(
+            Transform parent,
+            float totalHeight,
+            float baseWidth,
+            float baseLength,
+            Material material)
+        {
+            int sliceCount = Mathf.Max(3, Mathf.CeilToInt(totalHeight / 0.45f));
+            float sliceHeight = totalHeight / sliceCount;
+
+            for (int i = 0; i < sliceCount; i++)
+            {
+                float t = sliceCount == 1 ? 1f : i / (float)(sliceCount - 1);
+                float widthScale = Mathf.Lerp(1.0f, 0.88f, t);
+                float lengthScale = Mathf.Lerp(1.0f, 0.92f, t);
+
+                GameObject slice = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                slice.name = "MetroStationSlice";
+                slice.transform.SetParent(parent, false);
+                slice.transform.localPosition = new Vector3(
+                    0f,
+                    sliceHeight * (i + 0.5f),
+                    0f);
+                slice.transform.localScale = new Vector3(
+                    baseWidth * widthScale,
+                    sliceHeight * 1.001f,
+                    baseLength * lengthScale);
+
+                var renderer = slice.GetComponent<MeshRenderer>();
+                if (renderer != null)
+                {
+                    renderer.sharedMaterial = material;
+                }
+
+                var collider = slice.GetComponent<Collider>();
+                if (collider != null)
+                {
+#if UNITY_EDITOR
+                    if (!Application.isPlaying)
+                    {
+                        Object.DestroyImmediate(collider);
+                    }
+                    else
+#endif
+                    {
+                        Object.Destroy(collider);
+                    }
+                }
+            }
         }
     }
 }
