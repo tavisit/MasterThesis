@@ -541,7 +541,8 @@ MonoBehaviour:
   _roadSettings: {fileID: 11400000, guid: 634b1d93c0288ad4a8cce9c10c6971da, type: 2}
   _generateStreetDecor: 1
   _generateSidewalks: 1
-  _sidewalkMaterial: {fileID: 2100000, guid: f25cefa4501e4d14a9a4cf9e29556ca8, type: 2}
+  _sidewalkMaterial: {fileID: 2100000, guid: fe5587621d5ccc742bb0f4dfc34dd19c, type: 2}
+  _sidewalkNucleusMaterial: {fileID: 2100000, guid: 5a42f7aa7e5cd6343b6e075714c5aaea, type: 2}
   _sidewalkWidth: 1.2
   _sidewalkVerticalOffset: 0.05
   _generateLightPosts: 1
@@ -574,15 +575,17 @@ MonoBehaviour:
   _archSegments: 12
   _archThickness: 1
   _archWidthMultiplier: 1.35
-  _metroArchWidthMultiplier: 1
-  _boulevardArchWidthMultiplier: 2.5
+  _metroArchWidthMultiplier: 0.6
+  _boulevardArchWidthMultiplier: 2
   _tunnelEntryExtension: 15
   _generateBridges: 1
   _bridgeHeightThreshold: 5
-  _pillarMaterial: {fileID: 2100000, guid: f25cefa4501e4d14a9a4cf9e29556ca8, type: 2}
+  _pillarMaterial: {fileID: 2100000, guid: a828fa0859741b5459e78b463a7890d1, type: 2}
   _pillarInterval: 20
   _pillarSides: 6
   _pillarRadius: 0.5
+  _pillarSegmentHeight: 1.2
+  _pillarTopClearance: 0.25
   _terrain: {fileID: 1586155856}
   _roadSettings: {fileID: 11400000, guid: 634b1d93c0288ad4a8cce9c10c6971da, type: 2}
 --- !u!1 &1752497165

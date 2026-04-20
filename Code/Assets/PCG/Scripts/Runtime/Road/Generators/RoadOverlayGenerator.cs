@@ -33,10 +33,11 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
     [Header("Bridge pillar shape")]
     [SerializeField] private int _pillarSides = 6;
     [SerializeField] private float _pillarRadius = 0.5f;
+    [SerializeField] private float _pillarSegmentHeight = 1.2f;
+    [SerializeField] private float _pillarTopClearance = 0.25f;
 
     [SerializeField] private TerrainAdapter _terrain;
     [SerializeField] private RoadSettings _roadSettings;
-    private readonly HashSet<Vector2Int> _placedArchCells = new();
     private CityManager _cityManager;
 
     private void Awake()
@@ -44,7 +45,7 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
         _cityManager = GetComponent<CityManager>() ?? FindFirstObjectByType<CityManager>();
     }
 
-    public void ResetPlacedCells() => _placedArchCells.Clear();
+    public void ResetPlacedCells() { }
 
     public void ProcessSpline(SplineContainer container, RoadType roadType)
     {
@@ -63,7 +64,7 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
         }
         else if (roadType == RoadType.Metro)
         {
-            hw *= Mathf.Max(1f, _metroArchWidthMultiplier);
+            hw *= _metroArchWidthMultiplier;
         }
 
         if (_generateTunnels)
@@ -158,17 +159,6 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
             {
                 continue;
             }
-
-            var cell = new Vector2Int(
-                Mathf.RoundToInt(positions[i].x / _tunnelSampleInterval),
-                Mathf.RoundToInt(positions[i].z / _tunnelSampleInterval));
-
-            if (_placedArchCells.Contains(cell))
-            {
-                continue;
-            }
-
-            _placedArchCells.Add(cell);
 
             float prevDist = i > 0
                 ? Vector3.Distance(positions[i - 1], positions[i])
@@ -272,22 +262,48 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
             Vector3 pos = pos3;
             float terrainH = _terrain != null ? _terrain.SampleHeight(pos.x, pos.z) : pos.y;
             float pillarH = pos.y - terrainH;
+            float topClearance = Mathf.Max(0f, _pillarTopClearance + hw * 0.05f + 0.185f);
+            float effectivePillarH = pillarH - topClearance;
 
-            if (pillarH <= _bridgeHeightThreshold)
+            if (effectivePillarH <= _bridgeHeightThreshold)
             {
                 continue;
             }
-
-            Mesh pillarMesh = BuildPillarMesh(_pillarSides, _pillarRadius, pillarH);
 
             var go = new GameObject("BridgePillar");
             go.transform.SetParent(container.transform, false);
             go.transform.position = new Vector3(pos.x, terrainH, pos.z);
             go.transform.rotation = Quaternion.identity;
-
-            go.AddComponent<MeshFilter>().sharedMesh = pillarMesh;
-            go.AddComponent<MeshRenderer>().sharedMaterial = _pillarMaterial;
+            BuildSegmentedBridgePillar(go.transform, effectivePillarH);
         }
+    }
+
+    private void BuildSegmentedBridgePillar(Transform parent, float pillarHeight)
+    {
+        float segmentHeightTarget = Mathf.Max(0.2f, _pillarSegmentHeight);
+        int segmentCount = Mathf.Max(1, Mathf.CeilToInt(pillarHeight / segmentHeightTarget));
+        float segmentHeight = pillarHeight / segmentCount;
+        int sides = Mathf.Max(3, _pillarSides);
+        float radius = Mathf.Max(0.05f, _pillarRadius);
+
+        for (int i = 0; i < segmentCount; i++)
+        {
+            var seg = new GameObject("BridgePillarSegment");
+            seg.transform.SetParent(parent, false);
+            seg.transform.localPosition = new Vector3(0f, segmentHeight * (i + 0.5f), 0f);
+
+            Mesh segMesh = BuildPillarMesh(sides, radius, segmentHeight);
+            seg.AddComponent<MeshFilter>().sharedMesh = segMesh;
+            seg.AddComponent<MeshRenderer>().sharedMaterial = _pillarMaterial;
+        }
+
+        // Add one extra hex base at the bottom of the pillar.
+        var baseSeg = new GameObject("BridgePillarBaseHex");
+        baseSeg.transform.SetParent(parent, false);
+        baseSeg.transform.localPosition = new Vector3(0f, -segmentHeight * 0.5f, 0f);
+        Mesh baseMesh = BuildPillarMesh(sides, radius * 1.06f, segmentHeight);
+        baseSeg.AddComponent<MeshFilter>().sharedMesh = baseMesh;
+        baseSeg.AddComponent<MeshRenderer>().sharedMaterial = _pillarMaterial;
     }
 
     private static Mesh BuildPillarMesh(int sides, float radius, float height)
