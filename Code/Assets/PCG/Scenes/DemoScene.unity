@@ -179,7 +179,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 2000
-  field of view: 60
+  field of view: 45.6
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
@@ -256,6 +256,119 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!1 &382010398
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 382010402}
+  - component: {fileID: 382010401}
+  - component: {fileID: 382010400}
+  - component: {fileID: 382010399}
+  m_Layer: 0
+  m_Name: Water
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!64 &382010399
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 382010398}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &382010400
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 382010398}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: a617383f04d44494f817b1bd1ad32b2f, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &382010401
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 382010398}
+  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &382010402
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 382010398}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 496, y: 13, z: 499}
+  m_LocalScale: {x: 200, y: 1, z: 200}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -493,10 +606,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a60a448ce3650424990f2560f80e8f6e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CityManager
-  _generationMode: 0
-  _rows: 65
-  _columns: 65
-  _cellSize: 15
+  _generationMode: 1
+  _rows: 60
+  _columns: 60
+  _cellSize: 20
   _morphology: 1
   _morphologyBlend: 0.52
   _spatialGradient: 0
@@ -509,53 +622,42 @@ MonoBehaviour:
   - Centre: {x: 230, y: 245}
     Radius: 100
     Strength: 1
+    Profile: {fileID: 11400000, guid: c7d994b08fa4ebf4db531787a334da43, type: 2}
   - Centre: {x: 800, y: 800}
     Radius: 100
     Strength: 1
+    Profile: {fileID: 11400000, guid: 88f13b2caf8735c4392e110f644c8158, type: 2}
   - Centre: {x: 150, y: 800}
     Radius: 100
     Strength: 1
+    Profile: {fileID: 11400000, guid: f1b2db4aaf14e334ea178e3748185c23, type: 2}
   - Centre: {x: 800, y: 200}
     Radius: 100
     Strength: 1
-  _voronoiResolution: 256
-  _voronoiCellSize: 20
+    Profile: {fileID: 11400000, guid: 2eaeb9dc273017c4e812a4e3281c6a54, type: 2}
+  _voronoiResolution: 68
+  _voronoiCellSize: 50
+  _metroMaterial: {fileID: 2100000, guid: 0df476bde906a424c8f5e8ea3ecd7b06, type: 2}
+  _metroStationMaterial: {fileID: 2100000, guid: 5b198bbcdeb37ae4a824498fcc2319e4, type: 2}
+  _generateStreetDecor: 1
   _generateStreets: 1
-  _streetMaterial: {fileID: 2100000, guid: fc9942fcaa7aa6b4c9038c4327c934db, type: 2}
   _connectionsPerComponent: 1
   _generateBoulevard: 1
   _boulevardLineCount: 3
   _boulevardWidthMultiplier: 2
   _generateMetro: 1
   _metroLineCount: 5
-  _metroMaterial: {fileID: 2100000, guid: 0df476bde906a424c8f5e8ea3ecd7b06, type: 2}
   _metroBearingPenalty: 1
-  _metroStationInterval: 100
-  _metroStationMaterial: {fileID: 2100000, guid: 5b198bbcdeb37ae4a824498fcc2319e4, type: 2}
+  _metroStationInterval: 50
   _terrainAdapter: {fileID: 1586155856}
   _meshResolution: 1
+  _minRoadIntersectionAngleDegrees: 45
   _bridgeHeightThreshold: 10
   _tunnelHeightThreshold: 10
-  _roadMeshVerticalOffset: 0.02
-  _sidewalkMeshVerticalOffset: 0.01
   _roadSettings: {fileID: 11400000, guid: 634b1d93c0288ad4a8cce9c10c6971da, type: 2}
-  _generateStreetDecor: 1
-  _generateSidewalks: 1
-  _sidewalkMaterial: {fileID: 2100000, guid: fe5587621d5ccc742bb0f4dfc34dd19c, type: 2}
-  _sidewalkNucleusMaterial: {fileID: 2100000, guid: 5a42f7aa7e5cd6343b6e075714c5aaea, type: 2}
-  _sidewalkWidth: 1.2
-  _sidewalkVerticalOffset: 0.05
-  _generateLightPosts: 1
-  _lightPostPrefab: {fileID: 3139802345891708386, guid: 48f227b16b6190e4ea5c818ec0b7ec72, type: 3}
-  _lightPostInterval: 5
-  _generateSidewalkProps: 1
-  _sidewalkPropPrefabs:
-  - {fileID: 6691859456939295329, guid: 815bc15c91ddcec43a3d47c6bcadcd36, type: 3}
-  - {fileID: 4063061858130907959, guid: 8da84623e2dcfce4194b58556e37b5be, type: 3}
-  _sidewalkPropInterval: 1
-  _sidewalkPropSpawnChance: 0.5
-  _avoidRoadOverlapForDecor: 1
-  _parallelizeDecorChecks: 1
+  _showStreetIntersections: 1
+  _intersectionGizmoRadius: 1.2
+  _intersectionDirectionGizmoLength: 5
 --- !u!114 &1586155859
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -565,21 +667,21 @@ MonoBehaviour:
   m_GameObject: {fileID: 1586155851}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4ef06da0f9f713145bc8213434560b76, type: 3}
+  m_Script: {fileID: 11500000, guid: 69f3e927d3a42b94e87af47f1b069f58, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoadOverlayGenerator
   _generateTunnels: 1
-  _tunnelHeightThreshold: 5
+  _tunnelHeightThreshold: 3
   _tunnelMaterial: {fileID: 2100000, guid: f25cefa4501e4d14a9a4cf9e29556ca8, type: 2}
   _tunnelSampleInterval: 5
-  _archSegments: 12
-  _archThickness: 1
+  _archSegments: 16
+  _archThickness: 0.6
   _archWidthMultiplier: 1.35
-  _metroArchWidthMultiplier: 0.6
+  _metroArchWidthMultiplier: 1.8
   _boulevardArchWidthMultiplier: 2
-  _tunnelEntryExtension: 15
+  _tunnelEntryExtension: 10
   _generateBridges: 1
-  _bridgeHeightThreshold: 5
+  _bridgeHeightThreshold: 1
   _pillarMaterial: {fileID: 2100000, guid: a828fa0859741b5459e78b463a7890d1, type: 2}
   _pillarInterval: 20
   _pillarSides: 6
@@ -689,4 +791,5 @@ SceneRoots:
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 1586155854}
+  - {fileID: 382010402}
   - {fileID: 1752497168}

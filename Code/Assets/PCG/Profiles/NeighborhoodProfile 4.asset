@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4d9f91312d621f469f628c3346808be, type: 3}
+  m_Name: NeighborhoodProfile 4
+  m_EditorClassIdentifier: Assets.Scripts.Runtime::Assets.Scripts.Runtime.City.NeighborhoodProfile
+  RoadWidthMultiplier: 1
+  RoadMaterial: {fileID: 2100000, guid: 65f66e2b7dc0706429829bf8f919ae10, type: 2}
+  BoulevardMaterial: {fileID: 2100000, guid: 0a8663ded267f774d809d651573aa833, type: 2}
+  SidewalkMaterial: {fileID: 2100000, guid: 71227154c838e1d439c0572ce7c10482, type: 2}
+  SidewalkWidth: 1
+  SidewalkVerticalOffset: 0.05
+  LightPostPrefab: {fileID: 100000, guid: 52685ed25fdcb1b488b7047664232501, type: 3}
+  LightPostInterval: 28
+  MetroStationEntrancePrefab: {fileID: 8529775035624388385, guid: 00884ecfdee48429b9b0256fe101d69a, type: 3}
+  SidewalkPropSpawnChance: 1
+  SidewalkPropInterval: 1
+  SidewalkPropPrefabs:
+  - {fileID: 100000, guid: 832783ac41f2d70468c4995bebfabfb7, type: 3}
+  - {fileID: 100000, guid: f32b000e4ef3aa247b8ff4d19a88aca7, type: 3}
+  - {fileID: 100000, guid: 68ee3d17a75022e4ebc3881d12645841, type: 3}
+  - {fileID: 100000, guid: 7c37bcd7b749ad646b9478462ee83132, type: 3}
+  - {fileID: 100000, guid: f3878ef94022a6f459f18f2e12cd6813, type: 3}
+  - {fileID: 100000, guid: 5cd02694d41c0254e951ddd6df1991ab, type: 3}
+  - {fileID: 100000, guid: fd58faf9989a8b64b90cfd27236a8f7a, type: 3}
+  - {fileID: 100000, guid: 28d375a433cc78c4fa3db00df795f14d, type: 3}
+  - {fileID: 100000, guid: b960d001904bf89489f104152daa20dc, type: 3}
+  BoulevardInteriorSidewalkMaterial: {fileID: 2100000, guid: 700158700e4398340be1a92aa014ec3a, type: 2}
+  BoulevardInteriorSidewalkWidth: 1.6
+  BoulevardInteriorSidewalkVerticalOffset: 0.08
+  BoulevardInteriorLightPostPrefab: {fileID: 100000, guid: e1bc359441555dc4394ba9abb79e5db7, type: 3}
+  BoulevardInteriorLightPostInterval: 24
+  BoulevardInteriorPropSpawnChance: 1
+  BoulevardInteriorPropInterval: 1
+  BoulevardInteriorPropPrefabs:
+  - {fileID: 100000, guid: 16396581252dc7f418d57dad32e882d9, type: 3}
+  - {fileID: 100000, guid: db5a25ddc3185af4db2ea401a0e626c1, type: 3}
+  - {fileID: 100000, guid: c156f39e6d4ee694f90c9915e2daa633, type: 3}
+  - {fileID: 100000, guid: 86948bb7ab2a8274aa6a73f0ed8b64d5, type: 3}

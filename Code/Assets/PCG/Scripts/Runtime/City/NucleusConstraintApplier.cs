@@ -42,14 +42,14 @@ namespace Assets.Scripts.Runtime.City
                     float wz = r * cellSize;
 
                     ComputeInfluence(new Vector2(wx, wz), nuclei, sparseRadiusFraction,
-                        out float maxInfluence, out float maxStrength);
+                        out float maxInfluence);
 
                     if (maxInfluence <= 0f)
                     {
                         continue;
                     }
 
-                    ApplyTileConstraint(solver, r, c, maxInfluence, maxStrength, hasHybridTilePrefixes);
+                    ApplyTileConstraint(solver, r, c, maxInfluence, hasHybridTilePrefixes);
                 }
             }
         }
@@ -72,14 +72,14 @@ namespace Assets.Scripts.Runtime.City
                 var cell = solver.GetCell(i);
 
                 ComputeInfluence(cell.Site, nuclei, sparseRadiusFraction,
-                    out float maxInfluence, out float maxStrength);
+                    out float maxInfluence);
 
                 if (maxInfluence <= 0f)
                 {
                     continue;
                 }
 
-                ApplyVoronoiTileConstraint(solver, i, maxInfluence, maxStrength, hasHybridTilePrefixes);
+                ApplyVoronoiTileConstraint(solver, i, maxInfluence, hasHybridTilePrefixes);
             }
         }
 
@@ -87,11 +87,9 @@ namespace Assets.Scripts.Runtime.City
             Vector2 worldPos,
             IReadOnlyList<CityNucleus> nuclei,
             float sparseRadiusFraction,
-            out float maxInfluence,
-            out float maxStrength)
+            out float maxInfluence)
         {
             maxInfluence = 0f;
-            maxStrength = 1f;
 
             foreach (var nucleus in nuclei)
             {
@@ -116,7 +114,6 @@ namespace Assets.Scripts.Runtime.City
                 if (influence > maxInfluence)
                 {
                     maxInfluence = influence;
-                    maxStrength = nucleus.Strength;
                 }
             }
         }
@@ -141,7 +138,7 @@ namespace Assets.Scripts.Runtime.City
 
         private static void ApplyTileConstraint(
             WFCSolver solver, int row, int col,
-            float maxInfluence, float maxStrength, bool hasHybridTilePrefixes)
+            float maxInfluence, bool hasHybridTilePrefixes)
         {
             List<string> allowed;
 
@@ -176,7 +173,7 @@ namespace Assets.Scripts.Runtime.City
 
         private static void ApplyVoronoiTileConstraint(
             VoronoiWFCSolver solver, int cellId,
-            float maxInfluence, float maxStrength, bool hasHybridTilePrefixes)
+            float maxInfluence, bool hasHybridTilePrefixes)
         {
             List<string> allowed;
             if (hasHybridTilePrefixes)

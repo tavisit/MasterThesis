@@ -2,7 +2,6 @@
 
 using Assets.Scripts.Runtime.City;
 using Assets.Scripts.Runtime.Graph;
-using Assets.Scripts.Runtime.MeshRelated;
 
 using Unity.Mathematics;
 
@@ -14,18 +13,20 @@ namespace Assets.Scripts.Runtime.Spline
     public static class RoadSplineBuilder
     {
         private const float OrganicTangentFraction = 0.20f;
-        private const float SetbackFraction = 0.28f;
 
         public static List<SplineContainer> BuildSplines(
             RoadGraph graph,
             Transform parent,
             RoadSettings roadSettings,
             UrbanMorphology morphology = UrbanMorphology.Grid,
-            int seed = 0)
+            int seed = 0,
+            float junctionEndInset = 0f)
         {
             var containers = new List<SplineContainer>();
             var chains = graph.ExtractChains();
-            var junctionSet = BuildJunctionSet(graph);
+            HashSet<RoadNode> junctionNodes = junctionEndInset > 0f
+                ? BuildJunctionNodes(graph)
+                : null;
 
             foreach (var chain in chains)
             {
@@ -45,15 +46,10 @@ namespace Assets.Scripts.Runtime.Spline
 
                 var positions = BuildPositions(chain, isOrganic, seed);
 
-                float hw = RoadMeshExtruder.GetHalfWidth(chain[0].Type, roadSettings);
-                float setback = hw * SetbackFraction;
-
-                positions = ApplySetback(
-                    positions,
-                    chain[0],
-                    chain[chain.Count - 1],
-                    junctionSet,
-                    setback);
+                if (junctionNodes != null && junctionEndInset > 0f)
+                {
+                    positions = ApplyJunctionEndInset(positions, chain, junctionNodes, junctionEndInset);
+                }
 
                 if (positions.Count < 2)
                 {
@@ -110,7 +106,7 @@ namespace Assets.Scripts.Runtime.Spline
             return containers;
         }
 
-        public static HashSet<RoadNode> BuildJunctionSet(RoadGraph graph)
+        private static HashSet<RoadNode> BuildJunctionNodes(RoadGraph graph)
         {
             var degree = new Dictionary<RoadNode, int>();
             foreach (var edge in graph.Edges)
@@ -133,37 +129,48 @@ namespace Assets.Scripts.Runtime.Spline
             return junctions;
         }
 
-        private static List<Vector3> ApplySetback(
+        private static List<Vector3> ApplyJunctionEndInset(
             List<Vector3> positions,
-            RoadNode startNode,
-            RoadNode endNode,
-            HashSet<RoadNode> junctions,
-            float setback)
+            List<RoadNode> chain,
+            HashSet<RoadNode> junctionNodes,
+            float inset)
         {
-            if (positions.Count < 2)
+            if (positions.Count < 2 || inset <= 0f || chain.Count < 2)
             {
                 return positions;
             }
 
             var result = new List<Vector3>(positions);
 
-            if (junctions.Contains(startNode))
+            if (junctionNodes.Contains(chain[0]))
             {
-                Vector3 a = result[0];
-                Vector3 b = result[1];
-                float seg = Vector3.Distance(a, b);
-                float t = Mathf.Min(setback / seg, 0.45f);
-                result[0] = Vector3.Lerp(a, b, t);
+                Vector3 graphDir = chain[1].Position - chain[0].Position;
+                graphDir.y = 0f;
+                float edgeLen = graphDir.magnitude;
+                if (edgeLen > 1e-4f)
+                {
+                    graphDir /= edgeLen;
+                    float travel = Mathf.Min(inset, edgeLen * 0.48f);
+                    Vector3 p = chain[0].Position + graphDir * travel;
+                    p.y = result[0].y;
+                    result[0] = p;
+                }
             }
 
-            if (junctions.Contains(endNode))
+            if (junctionNodes.Contains(chain[^1]))
             {
-                int last = result.Count - 1;
-                Vector3 a = result[last];
-                Vector3 b = result[last - 1];
-                float seg = Vector3.Distance(a, b);
-                float t = Mathf.Min(setback / seg, 0.45f);
-                result[last] = Vector3.Lerp(a, b, t);
+                Vector3 inward = chain[^2].Position - chain[^1].Position;
+                inward.y = 0f;
+                float edgeLen = inward.magnitude;
+                if (edgeLen > 1e-4f)
+                {
+                    inward /= edgeLen;
+                    float travel = Mathf.Min(inset, edgeLen * 0.48f);
+                    int last = result.Count - 1;
+                    Vector3 p = chain[^1].Position + inward * travel;
+                    p.y = result[last].y;
+                    result[last] = p;
+                }
             }
 
             return result;

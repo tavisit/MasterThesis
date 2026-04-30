@@ -2,6 +2,7 @@
 using System.Linq;
 
 using Assets.Scripts.Runtime.Adapters;
+using Assets.Scripts.Runtime.Graph;
 using Assets.Scripts.Runtime.Road.Generators;
 using Assets.Scripts.Runtime.Voronoi;
 using Assets.Scripts.Runtime.WFC;
@@ -54,9 +55,13 @@ namespace Assets.Scripts.Runtime.City
         [SerializeField] private int _voronoiResolution = 256;
         [SerializeField] private float _voronoiCellSize = 40f;
 
+        [Header("Rendering")]
+        [SerializeField] private Material _metroMaterial;
+        [SerializeField] private Material _metroStationMaterial;
+        [SerializeField] private bool _generateStreetDecor = true;
+
         [Header("Street")]
         [SerializeField] private bool _generateStreets = true;
-        [SerializeField] private Material _streetMaterial;
         [SerializeField] private int _connectionsPerComponent = 2;
 
         [Header("Boulevard")]
@@ -69,38 +74,23 @@ namespace Assets.Scripts.Runtime.City
         [Header("Metro")]
         [SerializeField] private bool _generateMetro = true;
         [SerializeField] private int _metroLineCount = 1;
-        [SerializeField] private Material _metroMaterial;
         [SerializeField][Range(0f, 2f)] private float _metroBearingPenalty = 0.6f;
         [SerializeField] private float _metroStationInterval = 80f;
-        [SerializeField] private Material _metroStationMaterial;
 
         [Header("Terrain")]
         [SerializeField] private TerrainAdapter _terrainAdapter;
 
         [Header("Mesh")]
         [SerializeField] private int _meshResolution = 20;
+        [SerializeField][Range(5f, 85f)] private float _minRoadIntersectionAngleDegrees = 32f;
         [SerializeField] private float _bridgeHeightThreshold = 1f;
         [SerializeField] private float _tunnelHeightThreshold = 1f;
-        [SerializeField] private float _roadMeshVerticalOffset = 0.02f;
-        [SerializeField] private float _sidewalkMeshVerticalOffset = 0.01f;
         [SerializeField] private RoadSettings _roadSettings;
 
-        [Header("Street Decoration")]
-        [SerializeField] private bool _generateStreetDecor = true;
-        [SerializeField] private bool _generateSidewalks = true;
-        [SerializeField] private Material _sidewalkMaterial;
-        [SerializeField] private Material _sidewalkNucleusMaterial;
-        [SerializeField] private float _sidewalkWidth = 1.0f;
-        [SerializeField] private float _sidewalkVerticalOffset = 0.05f;
-        [SerializeField] private bool _generateLightPosts = true;
-        [SerializeField] private GameObject _lightPostPrefab;
-        [SerializeField] private float _lightPostInterval = 28f;
-        [SerializeField] private bool _generateSidewalkProps = true;
-        [SerializeField] private List<GameObject> _sidewalkPropPrefabs = new();
-        [SerializeField] private float _sidewalkPropInterval = 36f;
-        [SerializeField][Range(0f, 1f)] private float _sidewalkPropSpawnChance = 0.45f;
-        [SerializeField] private bool _avoidRoadOverlapForDecor = true;
-        [SerializeField] private bool _parallelizeDecorChecks = true;
+        [Header("Debug")]
+        [SerializeField] private bool _showStreetIntersections = true;
+        [SerializeField] private float _intersectionGizmoRadius = 1.2f;
+        [SerializeField] private float _intersectionDirectionGizmoLength = 5f;
 
         private int VoronoiSiteCount
         {
@@ -151,30 +141,17 @@ namespace Assets.Scripts.Runtime.City
         public int BoulevardLineCount => _boulevardLineCount;
         public float BoulevardWidthMultiplier => _boulevardWidthMultiplier;
         public int MeshResolution => _meshResolution;
+        public float MinRoadIntersectionAngleDegrees => _minRoadIntersectionAngleDegrees;
         public float BridgeHeightThreshold => _bridgeHeightThreshold;
         public float TunnelHeightThreshold => _tunnelHeightThreshold;
-        public float RoadMeshVerticalOffset => _roadMeshVerticalOffset;
-        public float SidewalkMeshVerticalOffset => _sidewalkMeshVerticalOffset;
-        public Material StreetMaterial => _streetMaterial;
+        public float RoadMeshVerticalOffset => RoadGenerationOffsets.RoadMeshVerticalOffset;
+        public float SidewalkMeshVerticalOffset => RoadGenerationOffsets.SidewalkMeshVerticalOffset;
         public Material MetroMaterial => _metroMaterial;
         public TerrainAdapter TerrainAdapter => _terrainAdapter;
         public bool GenerateStreetDecor => _generateStreetDecor;
-        public bool GenerateSidewalks => _generateSidewalks;
-        public Material SidewalkMaterial => _sidewalkMaterial;
-        public Material SidewalkNucleusMaterial => _sidewalkNucleusMaterial;
-        public float SidewalkWidth => _sidewalkWidth;
-        public float SidewalkVerticalOffset => _sidewalkVerticalOffset;
-        public bool GenerateLightPosts => _generateLightPosts;
-        public GameObject LightPostPrefab => _lightPostPrefab;
-        public float LightPostInterval => _lightPostInterval;
-        public bool GenerateSidewalkProps => _generateSidewalkProps;
-        public IReadOnlyList<GameObject> SidewalkPropPrefabs => _sidewalkPropPrefabs;
-        public float SidewalkPropInterval => _sidewalkPropInterval;
-        public float SidewalkPropSpawnChance => _sidewalkPropSpawnChance;
-        public bool AvoidRoadOverlapForDecor => _avoidRoadOverlapForDecor;
-        public bool ParallelizeDecorChecks => _parallelizeDecorChecks;
         public string GenerationStage => _generationStage;
         public float GenerationProgress => _generationProgress;
+        public IReadOnlyList<RoadIntersectionInfo> StreetIntersections => _streetIntersections;
 
         public WFCSolver StreetSolver { get; private set; }
         public VoronoiWFCSolver VoronoiStreetSolver { get; private set; }
@@ -187,6 +164,7 @@ namespace Assets.Scripts.Runtime.City
         private SplineRoadGenerator _splineGenerator;
         private string _generationStage = "Idle";
         private float _generationProgress;
+        private List<RoadIntersectionInfo> _streetIntersections = new();
 
         private SplineRoadGenerator SplineGenerator =>
             _splineGenerator ??= new SplineRoadGenerator(this);
@@ -265,7 +243,12 @@ namespace Assets.Scripts.Runtime.City
             TileSet hybridTileSet = HybridTileSetFactory.CreateHybridStreet(gridBias);
 
             SetGenerationProgress("Generating Voronoi cells", 0.30f);
-            Vector2[] sites = GenerateVoronoiSites(VoronoiSiteCount, worldW, worldH, applySpatialGridSnap: true);
+            Vector2[] sites = CityVoronoiSiteGenerator.GenerateSites(
+                VoronoiSiteCount,
+                worldW,
+                worldH,
+                applySpatialGridSnap: true,
+                GetVoronoiSiteGeneratorConfig());
             var cells = VoronoiGenerator.Generate(sites, worldW, worldH, _voronoiResolution);
 
             SetGenerationProgress("Computing nucleus spatial bias", 0.38f);
@@ -335,7 +318,12 @@ namespace Assets.Scripts.Runtime.City
             float worldH = _rows * _cellSize;
 
             SetGenerationProgress("Generating Voronoi cells", 0.30f);
-            Vector2[] sites = GenerateVoronoiSites(VoronoiSiteCount, worldW, worldH);
+            Vector2[] sites = CityVoronoiSiteGenerator.GenerateSites(
+                VoronoiSiteCount,
+                worldW,
+                worldH,
+                applySpatialGridSnap: false,
+                GetVoronoiSiteGeneratorConfig());
             var cells = VoronoiGenerator.Generate(sites, worldW, worldH, _voronoiResolution);
 
             StreetSolver = null;
@@ -365,6 +353,11 @@ namespace Assets.Scripts.Runtime.City
             SetGenerationProgress(stage, progress);
         }
 
+        public void SetStreetIntersections(List<RoadIntersectionInfo> intersections)
+        {
+            _streetIntersections = intersections ?? new List<RoadIntersectionInfo>();
+        }
+
         private void SetGenerationProgress(string stage, float progress)
         {
             _generationStage = stage;
@@ -377,179 +370,26 @@ namespace Assets.Scripts.Runtime.City
 #endif
         }
 
-        private Vector2[] GenerateVoronoiSites(int count, float worldW, float worldH, bool applySpatialGridSnap = false)
+        private CityVoronoiSiteGenerator.Config GetVoronoiSiteGeneratorConfig()
         {
-            var rng = new System.Random(_seed);
-            var sites = new List<Vector2>();
-            float minDist = _voronoiCellSize * 0.8f;
-            int maxAttempts = 30;
-            int attempts = 0;
-
-            if (_nuclei != null)
-            {
-                foreach (var nucleus in _nuclei)
-                {
-                    float nucleusMinDist = _voronoiCellSize * (0.5f / nucleus.Strength);
-                    int extraCount = Mathf.RoundToInt(
-                        Mathf.PI * nucleus.Radius * nucleus.Radius /
-                        (nucleusMinDist * nucleusMinDist));
-                    extraCount = Mathf.Clamp(extraCount, 4, 40);
-
-                    for (int e = 0; e < extraCount * maxAttempts && sites.Count < count + extraCount; e++)
-                    {
-                        float angle = (float)(rng.NextDouble() * Mathf.PI * 2f);
-                        float r = (float)(rng.NextDouble() * nucleus.Radius);
-                        var candidate = new Vector2(
-                            nucleus.Centre.x + Mathf.Cos(angle) * r,
-                            nucleus.Centre.y + Mathf.Sin(angle) * r);
-                        if (applySpatialGridSnap)
-                        {
-                            candidate = SnapSiteTowardGrid(candidate, worldW, worldH);
-                        }
-
-                        if (candidate.x < 0 || candidate.x > worldW ||
-                            candidate.y < 0 || candidate.y > worldH)
-                        {
-                            continue;
-                        }
-
-                        bool tooClose = false;
-                        foreach (var s in sites)
-                        {
-                            if (Vector2.Distance(candidate, s) < nucleusMinDist)
-                            { tooClose = true; break; }
-                        }
-
-                        if (!tooClose)
-                        {
-                            sites.Add(candidate);
-                        }
-                    }
-                }
-            }
-
-            while (sites.Count < count && attempts < count * maxAttempts)
-            {
-                if (applySpatialGridSnap &&
-                    _spatialGradient == SpatialMorphologyGradient.OrganicNearNuclei_GridFar &&
-                    _gridTopologyInfluence >= 0.6f)
-                {
-                    int gxCount = Mathf.Max(1, _columns);
-                    int gyCount = Mathf.Max(1, _rows);
-                    float stepX = worldW / gxCount;
-                    float stepY = worldH / gyCount;
-                    var lattice = new List<Vector2>(gxCount * gyCount);
-
-                    for (int gy = 0; gy < gyCount; gy++)
-                    {
-                        for (int gx = 0; gx < gxCount; gx++)
-                        {
-                            lattice.Add(new Vector2((gx + 0.5f) * stepX, (gy + 0.5f) * stepY));
-                        }
-                    }
-
-                    for (int i = lattice.Count - 1; i > 0; i--)
-                    {
-                        int j = rng.Next(i + 1);
-                        (lattice[i], lattice[j]) = (lattice[j], lattice[i]);
-                    }
-
-                    foreach (var p in lattice)
-                    {
-                        if (sites.Count >= count)
-                        {
-                            break;
-                        }
-
-                        var candidate = p;
-                        if (_nuclei != null && _nuclei.Length > 0)
-                        {
-                            float organic = SpatialMorphologyBias.ComputeSpatialOrganicBias(
-                                candidate, _nuclei, _spatialGradient, _nucleusFalloffWorld);
-                            organic = Mathf.Lerp(_morphologyBlend, organic, _spatialInfluence);
-                            float jitter = Mathf.Clamp01(organic) * Mathf.Min(stepX, stepY) * 0.28f;
-                            if (jitter > 0.001f)
-                            {
-                                candidate += new Vector2(
-                                    ((float)rng.NextDouble() * 2f - 1f) * jitter,
-                                    ((float)rng.NextDouble() * 2f - 1f) * jitter);
-                            }
-                        }
-
-                        candidate = SnapSiteTowardGrid(candidate, worldW, worldH);
-                        candidate.x = Mathf.Clamp(candidate.x, 0f, worldW);
-                        candidate.y = Mathf.Clamp(candidate.y, 0f, worldH);
-                        sites.Add(candidate);
-                    }
-
-                    break;
-                }
-                else
-                {
-                    attempts++;
-                    var candidate = new Vector2(
-                        (float)(rng.NextDouble() * worldW),
-                        (float)(rng.NextDouble() * worldH));
-                    if (applySpatialGridSnap)
-                    {
-                        candidate = SnapSiteTowardGrid(candidate, worldW, worldH);
-                    }
-
-                    bool tooClose = false;
-                    foreach (var s in sites)
-                    {
-                        if (Vector2.Distance(candidate, s) < minDist)
-                        { tooClose = true; break; }
-                    }
-
-                    if (!tooClose)
-                    {
-                        sites.Add(candidate);
-                    }
-                }
-            }
-
-            return sites.ToArray();
-        }
-        private Vector2 SnapSiteTowardGrid(Vector2 site, float worldW, float worldH)
-        {
-            float organicBias;
-            if (_nuclei == null || _nuclei.Length == 0)
-            {
-                organicBias = _morphologyBlend;
-            }
-            else
-            {
-                organicBias = SpatialMorphologyBias.ComputeSpatialOrganicBias(
-                    site,
-                    _nuclei,
-                    _spatialGradient,
-                    _nucleusFalloffWorld);
-                organicBias = Mathf.Lerp(_morphologyBlend, organicBias, _spatialInfluence);
-            }
-
-            float gridAffinity = 1f - Mathf.Clamp01(organicBias);
-            float snapStrength = Mathf.Clamp01(gridAffinity * _gridTopologyInfluence);
-            if (snapStrength <= 0f)
-            {
-                return site;
-            }
-
-            float step = Mathf.Max(1f, Mathf.Max(_cellSize, _voronoiCellSize * 0.75f));
-            Vector2 gridAnchor = new Vector2(
-                Mathf.Round(site.x / step) * step,
-                Mathf.Round(site.y / step) * step);
-
-            Vector2 snapped = snapStrength >= 0.85f
-                ? gridAnchor
-                : Vector2.Lerp(site, gridAnchor, snapStrength);
-            snapped.x = Mathf.Clamp(snapped.x, 0f, worldW);
-            snapped.y = Mathf.Clamp(snapped.y, 0f, worldH);
-            return snapped;
+            return new CityVoronoiSiteGenerator.Config(
+                _seed,
+                _voronoiCellSize,
+                _nuclei,
+                _spatialGradient,
+                _gridTopologyInfluence,
+                _columns,
+                _rows,
+                _morphologyBlend,
+                _spatialInfluence,
+                _nucleusFalloffWorld,
+                _cellSize);
         }
 
         private void ClearGenerated()
         {
+            _streetIntersections.Clear();
+
             var children = new List<Transform>();
             foreach (Transform child in transform)
             {
@@ -570,6 +410,51 @@ namespace Assets.Scripts.Runtime.City
                 foreach (var child in children.Where(c => c != null))
                 {
                     Destroy(child.gameObject);
+                }
+            }
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            if (!_showStreetIntersections || _streetIntersections == null || _streetIntersections.Count == 0)
+            {
+                return;
+            }
+
+            float sphereRadius = Mathf.Max(0.05f, _intersectionGizmoRadius);
+            float dirLength = Mathf.Max(0.25f, _intersectionDirectionGizmoLength);
+
+            for (int i = 0; i < _streetIntersections.Count; i++)
+            {
+                RoadIntersectionInfo intersection = _streetIntersections[i];
+                if (intersection == null)
+                {
+                    continue;
+                }
+
+                Vector3 center = intersection.Position;
+                Gizmos.color = new Color(1f, 0.85f, 0.2f, 0.9f);
+                Gizmos.DrawSphere(center + Vector3.up * 0.15f, sphereRadius);
+
+                if (intersection.ApproachDirections == null)
+                {
+                    continue;
+                }
+
+                Gizmos.color = new Color(1f, 0.35f, 0.2f, 0.9f);
+                for (int d = 0; d < intersection.ApproachDirections.Count; d++)
+                {
+                    Vector3 dir = intersection.ApproachDirections[d];
+                    if (dir.sqrMagnitude < 1e-6f)
+                    {
+                        continue;
+                    }
+
+                    Vector3 n = dir.normalized;
+                    Vector3 start = center + Vector3.up * 0.2f;
+                    Vector3 end = start + n * dirLength;
+                    Gizmos.DrawLine(start, end);
+                    Gizmos.DrawSphere(end, sphereRadius * 0.35f);
                 }
             }
         }

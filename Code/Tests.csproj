@@ -64,6 +64,7 @@
     <Compile Include="Assets\Tests\EditMode\SpatialMorphologyBiasTests.cs" />
     <Compile Include="Assets\Tests\EditMode\WFCSolverTests.cs" />
     <Compile Include="Assets\Tests\EditMode\NucleusConstraintApplierTests.cs" />
+    <Compile Include="Assets\Tests\EditMode\StreetDecorationGeneratorTests.cs" />
     <Compile Include="Assets\Tests\EditMode\RoadGraphConnectorTests.cs" />
     <Compile Include="Assets\Tests\EditMode\HybridTileWeightMultiplierTests.cs" />
     <Compile Include="Assets\Tests\EditMode\RoadGraphTests.cs" />
@@ -628,6 +629,10 @@
     </Reference>
     <Reference Include="UnityEditor.WindowsStandalone.Extensions">
       <HintPath>D:\Unity\6000.3.6f1\Editor\Data\PlaybackEngines\WindowsStandaloneSupport\UnityEditor.WindowsStandalone.Extensions.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEditor.LinuxStandalone.Extensions">
+      <HintPath>D:\Unity\6000.3.6f1\Editor\Data\PlaybackEngines\LinuxStandaloneSupport\UnityEditor.LinuxStandalone.Extensions.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="nunit.framework">

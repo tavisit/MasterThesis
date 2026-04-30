@@ -19,9 +19,8 @@ namespace Assets.Scripts.Editor
 
             EditorGUILayout.LabelField("Presets", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "One click sets mode + main sliders, then generates. \n" +
-                "Core settings are visible directly. \n" +
-                "Technical tuning is in Advanced.",
+                "Voronoi Spatial Hybrid presets set mode and main sliders, then generate. " +
+                "Core fields are below; technical tuning is under Advanced.",
                 MessageType.None);
 
             if (GUILayout.Button("Grid at nuclei -> Voronoi outside", GUILayout.Height(28)))
@@ -33,20 +32,6 @@ namespace Assets.Scripts.Editor
             {
                 ApplyVoronoiSpatialPreset(manager, CityManagerEditorPresets.VoronoiCoreGridOutside);
             }
-
-            EditorGUILayout.Space(4);
-            EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("Simple grid (whole city)", GUILayout.Height(26)))
-            {
-                SetSingleMorphologyAndGenerate(manager, UrbanMorphology.Grid);
-            }
-
-            if (GUILayout.Button("Simple Voronoi (whole city)", GUILayout.Height(26)))
-            {
-                SetSingleMorphologyAndGenerate(manager, UrbanMorphology.Organic);
-            }
-
-            EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.LabelField("Actions", EditorStyles.boldLabel);
 
@@ -94,6 +79,13 @@ namespace Assets.Scripts.Editor
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_boulevardWidthMultiplier"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_generateMetro"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_metroLineCount"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_metroStationInterval"));
+
+            EditorGUILayout.Space(6);
+            EditorGUILayout.LabelField("Rendering", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_metroMaterial"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_metroStationMaterial"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_generateStreetDecor"));
         }
 
         private void DrawAdvancedSections()
@@ -131,33 +123,10 @@ namespace Assets.Scripts.Editor
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_tunnelHeightThreshold"));
 
             EditorGUILayout.Space(6);
-            EditorGUILayout.LabelField("Materials and Vertical Offsets", EditorStyles.boldLabel);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_streetMaterial"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_metroMaterial"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_metroStationMaterial"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_sidewalkMaterial"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_sidewalkNucleusMaterial"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_roadMeshVerticalOffset"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_sidewalkMeshVerticalOffset"));
+            EditorGUILayout.LabelField("Mesh", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_meshResolution"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_minRoadIntersectionAngleDegrees"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_roadSettings"));
-
-            EditorGUILayout.Space(6);
-            EditorGUILayout.LabelField("Street Decoration", EditorStyles.boldLabel);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_generateStreetDecor"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_generateSidewalks"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_sidewalkWidth"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_sidewalkVerticalOffset"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_generateLightPosts"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_lightPostPrefab"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_lightPostInterval"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_generateSidewalkProps"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_sidewalkPropPrefabs"), includeChildren: true);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_sidewalkPropInterval"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_sidewalkPropSpawnChance"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_avoidRoadOverlapForDecor"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_parallelizeDecorChecks"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_metroStationInterval"));
         }
 
         private static void DrawTerrainAdapterControls(SerializedProperty terrainAdapterProp)
@@ -188,15 +157,6 @@ namespace Assets.Scripts.Editor
                 MessageType.None);
 
             terrainSO.ApplyModifiedProperties();
-        }
-
-        private static void SetSingleMorphologyAndGenerate(CityManager manager, UrbanMorphology morphology)
-        {
-            SerializedObject so = new SerializedObject(manager);
-            so.FindProperty("_generationMode").enumValueIndex = (int)CityGenerationMode.SingleMorphology;
-            so.FindProperty("_morphology").enumValueIndex = (int)morphology;
-            so.ApplyModifiedProperties();
-            manager.Generate();
         }
 
         private static void ApplyVoronoiSpatialPreset(

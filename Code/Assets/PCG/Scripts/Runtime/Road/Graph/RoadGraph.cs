@@ -174,6 +174,13 @@ namespace Assets.Scripts.Runtime.Graph
                     break;
                 }
 
+                // Keep chains bounded by junctions/endpoints.
+                // Degree-2 nodes are pass-through; degree 1 or >2 are boundaries.
+                if (neighbours.Count != 2)
+                {
+                    break;
+                }
+
                 RoadEdge next = null;
                 foreach (var e in neighbours)
                 {
