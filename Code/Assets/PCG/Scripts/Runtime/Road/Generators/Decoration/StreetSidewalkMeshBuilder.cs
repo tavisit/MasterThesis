@@ -5,7 +5,7 @@ using UnityEngine.Splines;
 
 namespace Assets.Scripts.Runtime.Road.Generators
 {
-    internal static class StreetSidewalkMeshBuilder
+    public static class StreetSidewalkMeshBuilder
     {
         internal static void BuildSidewalkStrips(
             SplineContainer container,

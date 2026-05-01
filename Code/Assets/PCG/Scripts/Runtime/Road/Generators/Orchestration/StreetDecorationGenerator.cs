@@ -434,7 +434,7 @@ namespace Assets.Scripts.Runtime.Road.Generators
                 float propPitch = GetPropPitchDegrees(prefab);
                 Quaternion worldRot = Quaternion.LookRotation(yawForward, Vector3.up)
                     * Quaternion.Euler(propPitch, 0f, 0f);
-                if (IsPointOnRoadSurface(container.transform.parent, worldPos))
+                if (IsWorldPointOnRoundaboutOrStubSurface(container.transform.parent, worldPos))
                 {
                     d += GetJitteredIntervalStep(interval, rng);
                     continue;
@@ -481,7 +481,7 @@ namespace Assets.Scripts.Runtime.Road.Generators
             out Vector3 resolvedPos)
         {
             resolvedPos = startPos;
-            if (!IsPointOnRoadSurface(root, startPos))
+            if (!IsWorldPointOnRoundaboutOrStubSurface(root, startPos))
             {
                 return true;
             }
@@ -497,7 +497,7 @@ namespace Assets.Scripts.Runtime.Road.Generators
             for (int i = 1; i <= maxSteps; i++)
             {
                 Vector3 candidate = startPos + axis * (i * stepSize);
-                if (!IsPointOnRoadSurface(root, candidate))
+                if (!IsWorldPointOnRoundaboutOrStubSurface(root, candidate))
                 {
                     resolvedPos = candidate;
                     return true;
@@ -507,7 +507,11 @@ namespace Assets.Scripts.Runtime.Road.Generators
             return false;
         }
 
-        private static bool IsPointOnRoadSurface(Transform root, Vector3 worldPos)
+        /// <summary>
+        /// True when <paramref name="worldPos"/> lies on generated intersection or dead-end stub roundabout meshes
+        /// (used to skip boulevard interior props on those surfaces).
+        /// </summary>
+        public static bool IsWorldPointOnRoundaboutOrStubSurface(Transform root, Vector3 worldPos)
         {
             if (root == null)
             {

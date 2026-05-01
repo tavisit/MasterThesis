@@ -64,8 +64,12 @@
     <Compile Include="Assets\Tests\EditMode\SpatialMorphologyBiasTests.cs" />
     <Compile Include="Assets\Tests\EditMode\WFCSolverTests.cs" />
     <Compile Include="Assets\Tests\EditMode\NucleusConstraintApplierTests.cs" />
+    <Compile Include="Assets\Tests\EditMode\StreetPropPlacementTests.cs" />
     <Compile Include="Assets\Tests\EditMode\StreetDecorationGeneratorTests.cs" />
     <Compile Include="Assets\Tests\EditMode\RoadGraphConnectorTests.cs" />
+    <Compile Include="Assets\Tests\EditMode\NucleusPathFinderTests.cs" />
+    <Compile Include="Assets\Tests\EditMode\RoundaboutMeshUtilityTests.cs" />
+    <Compile Include="Assets\Tests\EditMode\BoulevardGeneratorTests.cs" />
     <Compile Include="Assets\Tests\EditMode\HybridTileWeightMultiplierTests.cs" />
     <Compile Include="Assets\Tests\EditMode\RoadGraphTests.cs" />
     <Compile Include="Assets\Tests\EditMode\SocketAndDirectionTests.cs" />
@@ -1145,6 +1149,10 @@
     </Reference>
     <Reference Include="UnityEditor.TestRunner">
       <HintPath>Library\ScriptAssemblies\UnityEditor.TestRunner.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.Splines">
+      <HintPath>Library\ScriptAssemblies\Unity.Splines.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEditor.UI">

@@ -5,9 +5,9 @@ using UnityEngine;
 
 namespace Assets.Scripts.Runtime.Road.Generators
 {
-    internal static class StreetRoadOverlapUtility
+    public static class StreetRoadOverlapUtility
     {
-        internal static bool[] EvaluateRoadOverlap(
+        public static bool[] EvaluateRoadOverlap(
             List<Vector3> candidates,
             List<RoadSegmentData> roadSegments,
             bool runParallel)

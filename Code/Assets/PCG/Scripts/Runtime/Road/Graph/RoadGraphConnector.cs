@@ -23,7 +23,9 @@ namespace Assets.Scripts.Runtime.Graph
 
     public static class RoadGraphConnector
     {
-        private const int MinComponentSize = 3;
+        // Components smaller than this are dropped before stitching.
+        // Keeps tiny dead fragments (e.g. short stubs) from forcing long connector edges.
+        private const int MinComponentSize = 6;
         private const float MaxStitchDistance = 500f;
         private const float ExtendedMaxStitchDistance = 1200f;
         private const int TerrainSamples = 10;

@@ -95,4 +95,25 @@ public class RoadGraphConnectorTests
         Assert.AreEqual(0, stitches.Count);
         Assert.AreEqual(1, RoadGraphConnector.FindComponents(graph).Count);
     }
+
+    [Test]
+    public void ConnectComponents_TwoChainsBeyondDefaultStitchDistance_UsesExtendedRange()
+    {
+        var graph = BuildChain(Vector3.zero, 10, 10f);
+        AppendChain(graph, new Vector3(600f, 0f, 0f), 10, 10f);
+
+        var stitches = RoadGraphConnector.ConnectComponents(
+            graph,
+            bridgeHeightThreshold: 8f,
+            tunnelHeightThreshold: 5f,
+            terrain: null,
+            connectionsPerComponent: 2);
+
+        Assert.GreaterOrEqual(
+            stitches.Count,
+            1,
+            "Gap ~510m exceeds default 500m max stitch distance; extended range should still connect two large islands.");
+        Assert.AreEqual(1, RoadGraphConnector.FindComponents(graph).Count);
+        Assert.AreEqual(20, graph.Nodes.Count);
+    }
 }

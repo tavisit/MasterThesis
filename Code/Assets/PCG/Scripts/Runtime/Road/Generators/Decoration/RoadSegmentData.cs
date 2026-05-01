@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Assets.Scripts.Runtime.Road.Generators
 {
-    internal readonly struct RoadSegmentData
+    public readonly struct RoadSegmentData
     {
         public readonly Vector3 A;
         public readonly Vector3 B;

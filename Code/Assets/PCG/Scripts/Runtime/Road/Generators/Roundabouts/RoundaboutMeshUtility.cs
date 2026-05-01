@@ -4,9 +4,9 @@ using UnityEngine;
 
 namespace Assets.Scripts.Runtime.Road.Generators
 {
-    internal static class RoundaboutMeshUtility
+    public static class RoundaboutMeshUtility
     {
-        internal static Mesh BuildDiscMesh(
+        public static Mesh BuildDiscMesh(
             Transform parent,
             Vector3 centerWorld,
             float radius,
@@ -61,7 +61,7 @@ namespace Assets.Scripts.Runtime.Road.Generators
             return mesh;
         }
 
-        internal static Mesh BuildSidewalkRingMesh(
+        public static Mesh BuildSidewalkRingMesh(
             Transform parent,
             Vector3 centerWorld,
             float innerRadius,
@@ -115,7 +115,7 @@ namespace Assets.Scripts.Runtime.Road.Generators
             return mesh;
         }
 
-        internal static void EnsureUpwardNormals(Mesh mesh)
+        public static void EnsureUpwardNormals(Mesh mesh)
         {
             if (mesh == null)
             {

@@ -7,9 +7,9 @@ using UnityEngine.Splines;
 
 namespace Assets.Scripts.Runtime.Road.Generators
 {
-    internal static class StreetLightPlacer
+    public static class StreetLightPlacer
     {
-        internal static void PlaceLightPosts(
+        public static void PlaceLightPosts(
             SplineContainer container,
             float halfWidth,
             NeighborhoodStyleSample style,
@@ -57,7 +57,7 @@ namespace Assets.Scripts.Runtime.Road.Generators
                 runParallel: true);
             for (int i = 0; i < candidates.Count; i++)
             {
-                if (blocked[i] || IsPointOnIntersectionRoundabout(container.transform.parent, candidates[i].worldPos))
+                if (blocked[i] || IsWorldPointOnIntersectionRoundabout(container.transform.parent, candidates[i].worldPos))
                 {
                     continue;
                 }
@@ -67,7 +67,7 @@ namespace Assets.Scripts.Runtime.Road.Generators
             }
         }
 
-        internal static void PlaceBoulevardInteriorLightPosts(
+        public static void PlaceBoulevardInteriorLightPosts(
             SplineContainer container,
             NeighborhoodStyleSample style)
         {
@@ -95,7 +95,7 @@ namespace Assets.Scripts.Runtime.Road.Generators
 
                 Vector3 safeForward = GetSafeForward(tangent, Vector3.forward);
                 Vector3 worldPos = container.transform.TransformPoint(p);
-                if (IsPointOnIntersectionRoundabout(container.transform.parent, worldPos))
+                if (IsWorldPointOnIntersectionRoundabout(container.transform.parent, worldPos))
                 {
                     continue;
                 }
@@ -136,7 +136,10 @@ namespace Assets.Scripts.Runtime.Road.Generators
                 baseRotation * Quaternion.Euler(-90f, 0f, 0f));
         }
 
-        private static bool IsPointOnIntersectionRoundabout(Transform root, Vector3 worldPos)
+        /// <summary>
+        /// True when <paramref name="worldPos"/> lies within intersection roundabout renderer bounds (XZ disc).
+        /// </summary>
+        public static bool IsWorldPointOnIntersectionRoundabout(Transform root, Vector3 worldPos)
         {
             if (root == null)
             {

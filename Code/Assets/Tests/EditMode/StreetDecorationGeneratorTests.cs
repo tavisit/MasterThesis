@@ -10,11 +10,11 @@ public class StreetDecorationGeneratorTests
     public void BuildSidewalkTriangles_UsesUpwardFacingWinding()
     {
         var triangles = new int[(2 - 1) * 4 * 3];
-        MethodInfo method = typeof(StreetDecorationGenerator).GetMethod(
+        MethodInfo method = typeof(StreetSidewalkMeshBuilder).GetMethod(
             "BuildSidewalkTriangles",
             BindingFlags.NonPublic | BindingFlags.Static);
 
-        Assert.IsNotNull(method, "Expected StreetDecorationGenerator.BuildSidewalkTriangles to exist.");
+        Assert.IsNotNull(method, "Expected StreetSidewalkMeshBuilder.BuildSidewalkTriangles to exist.");
 
         method.Invoke(null, new object[] { triangles, 2 });
 
