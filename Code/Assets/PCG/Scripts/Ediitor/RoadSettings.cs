@@ -2,7 +2,7 @@
 
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "RoadSettings", menuName = "City/Road Settings")]
+[CreateAssetMenu(fileName = "RoadSettings", menuName = "PCG/Road Settings")]
 public sealed class RoadSettings : ScriptableObject
 {
     [Header("Half Widths")]

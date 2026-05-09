@@ -137,17 +137,21 @@ namespace Assets.Scripts.Editor
             }
 
             var terrainSO = new SerializedObject(terrainAdapterProp.objectReferenceValue);
-            SerializedProperty enforceSlope = terrainSO.FindProperty("_enforceSlopeConstraint");
+            SerializedProperty terrainRef = terrainSO.FindProperty("_terrain");
             SerializedProperty maxSlope = terrainSO.FindProperty("_maxRoadSlopeDegrees");
             SerializedProperty seaLevel = terrainSO.FindProperty("_seaLevel");
 
-            if (enforceSlope == null || maxSlope == null || seaLevel == null)
+            if (maxSlope == null || seaLevel == null)
             {
                 return;
             }
 
             EditorGUI.indentLevel++;
-            EditorGUILayout.PropertyField(enforceSlope, new GUIContent("Enforce Slope Constraint"));
+            if (terrainRef != null)
+            {
+                EditorGUILayout.PropertyField(terrainRef, new GUIContent("Terrain"));
+            }
+
             EditorGUILayout.PropertyField(maxSlope, new GUIContent("Max Road Slope Degrees"));
             EditorGUILayout.PropertyField(seaLevel, new GUIContent("Sea Level"));
             EditorGUI.indentLevel--;

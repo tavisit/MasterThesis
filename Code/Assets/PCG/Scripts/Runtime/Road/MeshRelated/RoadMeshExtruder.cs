@@ -12,34 +12,47 @@ namespace Assets.Scripts.Runtime.MeshRelated
     [ExecuteAlways]
     public sealed class RoadMeshExtruder : MonoBehaviour
     {
+        [Header("Spline mesh")]
         [SerializeField] private RoadType _type = RoadType.Street;
         [SerializeField] private int _resolution = 1;
+        [SerializeField] private float _meshVerticalOffset = 0f;
+        [SerializeField] private float _widthMultiplier = 1f;
+
+        [Header("Materials")]
         [SerializeField] private Material _roadMaterial;
         [SerializeField] private RoadSettings _roadSettings;
-        [SerializeField] private float _widthMultiplier = 1f;
-        [SerializeField] private float _meshVerticalOffset = 0f;
+
+        [Header("Lane markings")]
         [SerializeField] private int _laneCount = 2;
+        [Tooltip("Asphalt With Road Marks: Auto picks preset from mesh name when lane count > 0.")]
+        [SerializeField] private RoadLaneSurfacePreset _laneMarkingPreset = RoadLaneSurfacePreset.Auto;
 
         public RoadType RoadType { get => _type; set => _type = value; }
-        public float WidthMultiplier { get => _widthMultiplier; set => _widthMultiplier = value; }
-        public float MeshVerticalOffset { get => _meshVerticalOffset; set => _meshVerticalOffset = value; }
-        public int LaneCount { get => _laneCount; set => _laneCount = Mathf.Max(1, value); }
         public int Resolution { get => _resolution; set => _resolution = value; }
-        public RoadSettings RoadSettings
-        {
-            get => _roadSettings;
-            set => _roadSettings = value;
-        }
+        public float MeshVerticalOffset { get => _meshVerticalOffset; set => _meshVerticalOffset = value; }
+        public float WidthMultiplier { get => _widthMultiplier; set => _widthMultiplier = value; }
         public Material RoadMaterial
         {
             get => _roadMaterial;
             set
             {
-                _roadMaterial = value; if (_renderer)
+                _roadMaterial = value;
+                if (_renderer)
                 {
                     _renderer.sharedMaterial = value;
                 }
             }
+        }
+        public RoadSettings RoadSettings
+        {
+            get => _roadSettings;
+            set => _roadSettings = value;
+        }
+        public int LaneCount { get => _laneCount; set => _laneCount = Mathf.Max(0, value); }
+        public RoadLaneSurfacePreset LaneMarkingPreset
+        {
+            get => _laneMarkingPreset;
+            set => _laneMarkingPreset = value;
         }
 
         public static float GetHalfWidth(RoadType t, RoadSettings settings)
@@ -221,7 +234,8 @@ namespace Assets.Scripts.Runtime.MeshRelated
 
             var block = new MaterialPropertyBlock();
             _renderer.GetPropertyBlock(block);
-            block.SetFloat("_LaneCount", Mathf.Max(1, _laneCount));
+            RoadLaneSurfacePreset preset = RoadLaneSurfaceMark.ResolvePreset(_laneMarkingPreset, transform, _laneCount);
+            RoadLaneSurfaceMark.Apply(block, preset, _laneCount);
             _renderer.SetPropertyBlock(block);
         }
 

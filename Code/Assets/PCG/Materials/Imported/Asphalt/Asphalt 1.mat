@@ -21,7 +21,7 @@ Material:
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 2002
+  m_CustomRenderQueue: 2001
   stringTagMap:
     RenderType: Opaque
   disabledShaderPasses:
@@ -32,8 +32,8 @@ Material:
     m_TexEnvs:
     - _BaseMap:
         m_Texture: {fileID: 2800000, guid: 088a11b33d67ca3499e034f74b112726, type: 3}
-        m_Scale: {x: 7.69, y: 3.58}
-        m_Offset: {x: 1.45, y: 0}
+        m_Scale: {x: 3, y: 3}
+        m_Offset: {x: 0, y: 0}
     - _BumpMap:
         m_Texture: {fileID: 2800000, guid: 8d3b117276debdf4d8aec5fa647d4757, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -56,8 +56,12 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _MainTex:
         m_Texture: {fileID: 2800000, guid: 088a11b33d67ca3499e034f74b112726, type: 3}
-        m_Scale: {x: 7.69, y: 3.58}
-        m_Offset: {x: 1.45, y: 0}
+        m_Scale: {x: 3, y: 3}
+        m_Offset: {x: 0, y: 0}
+    - _MarkingMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
         m_Texture: {fileID: 2800000, guid: 201d49f59da1ce642ac36d7c4831755c, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -94,25 +98,39 @@ Material:
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BumpScale: 5
+    - _CenterLineGap: 0.014
+    - _CenterLineWidth: 0.0273
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _Cull: 2
     - _Cutoff: 0.5
+    - _DashLength: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _DstBlendAlpha: 0
+    - _EnableMarkingMap: 0
     - _EnvironmentReflections: 1
+    - _GapLength: 2.4
     - _GlossMapScale: 0
     - _Glossiness: 0
+    - _GlossinessSource: 0
     - _GlossyReflections: 0
+    - _LaneCount: 6
+    - _LaneLineWidth: 0.0176
+    - _MarkingTextureStrength: 2
     - _Metallic: 0.029
     - _OcclusionStrength: 1
     - _Parallax: 0.0384
-    - _QueueOffset: 2.4
+    - _QueueOffset: 1
     - _ReceiveShadows: 1
-    - _Smoothness: 0
+    - _RoadEndU: 1
+    - _RoadStartU: 0.15
+    - _Shininess: 0
+    - _Smoothness: 0.111
+    - _SmoothnessSource: 0
     - _SmoothnessTextureChannel: 1
+    - _SpecSource: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
@@ -122,8 +140,10 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 0.6415094, g: 0.6263795, b: 0.6263795, a: 1}
+    - _CenterLineColor: {r: 0.96, g: 0.96, b: 0.92, a: 1}
     - _Color: {r: 0.6415094, g: 0.62637943, b: 0.62637943, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _LaneMarkingColor: {r: 0.96, g: 0.96, b: 0.92, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

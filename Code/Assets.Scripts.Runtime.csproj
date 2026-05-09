@@ -63,7 +63,6 @@
   <ItemGroup>
     <Compile Include="Assets\PCG\Scripts\Runtime\City\HybridTileSetFactory.cs" />
     <Compile Include="Assets\PCG\Scripts\Runtime\Road\Generators\Decoration\StreetLightPlacer.cs" />
-    <Compile Include="Assets\PCG\Scripts\Runtime\Adapters\WFCSolverComponent.cs" />
     <Compile Include="Assets\PCG\Scripts\Runtime\Road\Generators\Roundabouts\RoundaboutMeshUtility.cs" />
     <Compile Include="Assets\PCG\Scripts\Runtime\Road\Graph\RoadGraphConnector.cs" />
     <Compile Include="Assets\PCG\Scripts\Runtime\Road\Generators\Config\RoadGenerationOffsets.cs" />
@@ -86,6 +85,8 @@
     <Compile Include="Assets\PCG\Scripts\Ediitor\CityManagerEditorPresets.cs" />
     <Compile Include="Assets\PCG\Scripts\Runtime\WFC\WFCSolver.cs" />
     <Compile Include="Assets\PCG\Scripts\Runtime\Road\Generators\Decoration\StreetSidewalkMeshBuilder.cs" />
+    <Compile Include="Assets\PCG\Scripts\Runtime\Demo\FloatingScreenshotCamera.cs" />
+    <Compile Include="Assets\PCG\Scripts\Runtime\Road\MeshRelated\RoadLaneSurfaceMark.cs" />
     <Compile Include="Assets\PCG\Scripts\Runtime\WFC\HybridTileWeightMultiplier.cs" />
     <Compile Include="Assets\PCG\Scripts\Runtime\Road\Generators\Roundabouts\IntersectionRoundaboutGenerator.cs" />
     <Compile Include="Assets\PCG\Scripts\Runtime\WFC\WFCCell.cs" />
@@ -1139,6 +1140,10 @@
     </Reference>
     <Reference Include="Unity.Splines">
       <HintPath>Library\ScriptAssemblies\Unity.Splines.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.InputSystem">
+      <HintPath>Library\ScriptAssemblies\Unity.InputSystem.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEditor.UI">

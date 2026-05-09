@@ -6,7 +6,7 @@ namespace Assets.Scripts.Runtime.City
 {
     [CreateAssetMenu(
         fileName = "NeighborhoodProfile",
-        menuName = "PCG/City/Neighborhood Profile")]
+        menuName = "PCG/Neighborhood Profile")]
     public sealed class NeighborhoodProfile : ScriptableObject
     {
         [Header("Road style")]

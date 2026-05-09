@@ -23,6 +23,8 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
     [SerializeField] private float _metroArchWidthMultiplier = 1.8f;
     [SerializeField] private float _boulevardArchWidthMultiplier = 1.1f;
     [SerializeField] private float _tunnelEntryExtension = 10f;
+    [Tooltip("Inner vault height along world-up. Road width only scales the arch on the horizontal cross-axis (OX); slice depth scales along the spline (OZ).")]
+    [SerializeField] private float _archVaultRise = 5f;
 
     [Header("Bridge")]
     [SerializeField] private bool _generateBridges = true;
@@ -44,8 +46,6 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
     {
         _cityManager = GetComponent<CityManager>() ?? FindFirstObjectByType<CityManager>();
     }
-
-    public void ResetPlacedCells() { }
 
     public void ProcessSpline(SplineContainer container, RoadType roadType)
     {
@@ -196,8 +196,10 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
 
     private Mesh BuildArchMesh(float hw, int segments, float thickness, float depth)
     {
-        float innerR = Mathf.Max(0.1f, hw - thickness * 0.5f);
-        float outerR = hw + thickness * 0.5f;
+        float innerRx = Mathf.Max(0.1f, hw - thickness * 0.5f);
+        float innerRy = Mathf.Max(0.1f, _archVaultRise);
+        float outerRx = innerRx + thickness;
+        float outerRy = innerRy + thickness;
 
         var verts = new List<Vector3>();
         var tris = new List<int>();
@@ -212,8 +214,8 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
                 float cx = Mathf.Cos(angle);
                 float cy = Mathf.Sin(angle);
 
-                verts.Add(new Vector3(cx * innerR, cy * innerR, z));
-                verts.Add(new Vector3(cx * outerR, cy * outerR, z));
+                verts.Add(new Vector3(cx * innerRx, cy * innerRy, z));
+                verts.Add(new Vector3(cx * outerRx, cy * outerRy, z));
                 uvs.Add(new Vector2((float)s / segments, face == 0 ? 0f : 1f));
                 uvs.Add(new Vector2((float)s / segments, face == 0 ? 0f : 1f));
             }

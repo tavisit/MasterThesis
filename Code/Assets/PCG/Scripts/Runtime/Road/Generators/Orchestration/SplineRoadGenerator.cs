@@ -15,14 +15,18 @@ namespace Assets.Scripts.Runtime.Road.Generators
     {
         private readonly CityManager _manager;
         private readonly Transform _root;
-        private readonly RoadSettings _roadSettings;
         private readonly RoadOverlayGenerator _overlay;
+        private readonly RoadSettings _roadSettings;
         private readonly MetroEntrancePlacer _metroEntrancePlacer;
         private readonly SplineRoadGraphProcessor _graphProcessor;
 
         private readonly List<GameObject> _generated = new();
         private readonly HashSet<Vector2Int> _placedStationCells = new();
         private readonly HashSet<Vector2Int> _placedEntranceCells = new();
+        private readonly List<(SplineContainer container, RoadType roadType, float widthMultiplier, bool forceStreetDecor)>
+            _deferredStreetDecor = new();
+
+        private bool _deferStreetDecorActive;
 
         public SplineRoadGenerator(CityManager manager)
         {
@@ -41,7 +45,6 @@ namespace Assets.Scripts.Runtime.Road.Generators
             _placedEntranceCells.Clear();
             Clear();
             _manager.ReportGenerationProgress("Clearing previous generated objects", 0.775f);
-            _overlay?.ResetPlacedCells();
 
             int rows = _manager.Rows;
             int columns = _manager.Columns;
@@ -52,6 +55,7 @@ namespace Assets.Scripts.Runtime.Road.Generators
             bool useVoronoiStreetGraph = _manager.UsesVoronoiStreetGraph && voronoiSolver != null;
 
             RoadGraph streetGraph = null;
+            bool deferStreetDecorForMetro = false;
 
             if (_manager.GenerateStreets &&
                 (streetSolver != null || voronoiSolver != null))
@@ -66,7 +70,21 @@ namespace Assets.Scripts.Runtime.Road.Generators
 
                 _manager.SetStreetIntersections(
                     RoadIntersectionExtractor.Extract(streetGraph, _manager.MinRoadIntersectionAngleDegrees));
+                deferStreetDecorForMetro =
+                    _manager.GenerateStreetDecor &&
+                    _manager.GenerateMetro &&
+                    _manager.Nuclei != null &&
+                    _manager.Nuclei.Length >= 2;
+                _deferredStreetDecor.Clear();
+                _deferStreetDecorActive = deferStreetDecorForMetro;
                 ProcessGraph(streetGraph, RoadType.Street, null);
+                _deferStreetDecorActive = false;
+
+                if (deferStreetDecorForMetro)
+                {
+                    _manager.ReportGenerationProgress("Rebuilding sidewalks", 0.908f);
+                    StreetDecorationGenerator.RebuildAllSidewalks(_root, _manager, _roadSettings);
+                }
             }
 
             if (_manager.GenerateMetro &&
@@ -110,6 +128,12 @@ namespace Assets.Scripts.Runtime.Road.Generators
                                  "and at least 2 nuclei to route through.");
             }
 
+            if (deferStreetDecorForMetro)
+            {
+                FlushDeferredStreetDecor();
+                RemovePropsOnRoundabouts();
+            }
+
             _manager.ReportGenerationProgress("Rebuilding sidewalks", 0.915f);
             StreetDecorationGenerator.RebuildAllSidewalks(_root, _manager, _roadSettings);
             _manager.ReportGenerationProgress("Placing props", 0.925f);
@@ -126,7 +150,6 @@ namespace Assets.Scripts.Runtime.Road.Generators
             _generated.Clear();
         }
 
-
         private void ProcessGraph(RoadGraph graph, RoadType type, Material material)
         {
             _graphProcessor.ProcessGraph(
@@ -138,7 +161,42 @@ namespace Assets.Scripts.Runtime.Road.Generators
                 GetWorldPointOnSpline,
                 ProcessOverlay,
                 PostCullOverlappingStreetSplines,
-                RemovePropsOnRoundabouts);
+                RemovePropsOnRoundabouts,
+                _deferStreetDecorActive && type == RoadType.Street
+                    ? (System.Action<SplineContainer, float>)EnqueueDeferredBoulevardStreetDecor
+                    : null);
+        }
+
+        private void EnqueueDeferredBoulevardStreetDecor(SplineContainer container, float widthMultiplier)
+        {
+            _deferredStreetDecor.Add((container, RoadType.Street, widthMultiplier, false));
+        }
+
+        private void FlushDeferredStreetDecor()
+        {
+            int n = _deferredStreetDecor.Count;
+            for (int i = 0; i < n; i++)
+            {
+                (SplineContainer container, RoadType roadType, float widthMultiplier, bool forceStreetDecor) = _deferredStreetDecor[i];
+                if (container == null)
+                {
+                    continue;
+                }
+
+                _manager.ReportGenerationProgress(
+                    "Placing props",
+                    Mathf.Lerp(0.895f, 0.905f, n <= 1 ? 1f : (float)i / (n - 1)));
+                StreetDecorationGenerator.AddDecorations(
+                    container,
+                    roadType,
+                    _manager,
+                    _roadSettings,
+                    widthMultiplier,
+                    forceStreetDecor,
+                    includeSidewalks: false);
+            }
+
+            _deferredStreetDecor.Clear();
         }
 
         private void RemoveOverlappingStreetSplineMesh(SplineContainer boulevard)
@@ -154,6 +212,11 @@ namespace Assets.Scripts.Runtime.Road.Generators
             Vector3 bMid = GetWorldPointOnSpline(boulevard, 0.5f);
             float bLength = boulevard.Spline.GetLength();
 
+            IReadOnlyList<Vector3> boulevardWorldPolyline = BuildUniformWorldPolyline(boulevard, bLength);
+            float boulevardHalfWidth =
+                RoadMeshExtruder.GetHalfWidth(RoadType.Street, _roadSettings) *
+                Mathf.Max(0.01f, _manager.BoulevardWidthMultiplier);
+
             foreach (var go in _generated)
             {
                 if (go == null || go.name != "RoadSpline_Street")
@@ -168,28 +231,31 @@ namespace Assets.Scripts.Runtime.Road.Generators
                 }
 
                 float sLength = street.Spline.GetLength();
-                if (Mathf.Abs(sLength - bLength) > 1.0f)
+                if (Mathf.Abs(sLength - bLength) <= 1.0f)
                 {
-                    continue;
+                    Vector3 sStart = GetWorldPointOnSpline(street, 0f);
+                    Vector3 sEnd = GetWorldPointOnSpline(street, 1f);
+                    Vector3 sMid = GetWorldPointOnSpline(street, 0.5f);
+
+                    bool sameDirection =
+                        Vector3.Distance(sStart, bStart) < 0.6f &&
+                        Vector3.Distance(sEnd, bEnd) < 0.6f;
+                    bool reverseDirection =
+                        Vector3.Distance(sStart, bEnd) < 0.6f &&
+                        Vector3.Distance(sEnd, bStart) < 0.6f;
+
+                    if ((sameDirection || reverseDirection) && Vector3.Distance(sMid, bMid) < 0.8f)
+                    {
+                        toRemove.Add(go);
+                        continue;
+                    }
                 }
 
-                Vector3 sStart = GetWorldPointOnSpline(street, 0f);
-                Vector3 sEnd = GetWorldPointOnSpline(street, 1f);
-                Vector3 sMid = GetWorldPointOnSpline(street, 0.5f);
-
-                bool sameDirection =
-                    Vector3.Distance(sStart, bStart) < 0.6f &&
-                    Vector3.Distance(sEnd, bEnd) < 0.6f;
-                bool reverseDirection =
-                    Vector3.Distance(sStart, bEnd) < 0.6f &&
-                    Vector3.Distance(sEnd, bStart) < 0.6f;
-
-                if (!(sameDirection || reverseDirection))
-                {
-                    continue;
-                }
-
-                if (Vector3.Distance(sMid, bMid) < 0.8f)
+                if (IsStreetSplineUnderBoulevardCorridor(
+                        street,
+                        sLength,
+                        boulevardWorldPolyline,
+                        boulevardHalfWidth))
                 {
                     toRemove.Add(go);
                 }
@@ -200,6 +266,86 @@ namespace Assets.Scripts.Runtime.Road.Generators
                 DestroyGameObject(go);
                 _generated.Remove(go);
             }
+        }
+
+        private static List<Vector3> BuildUniformWorldPolyline(SplineContainer container, float length)
+        {
+            int count = Mathf.Clamp(Mathf.CeilToInt(length / 4f), 16, 160);
+            var pts = new List<Vector3>(count);
+            for (int i = 0; i < count; i++)
+            {
+                float t = count == 1 ? 0f : i / (float)(count - 1);
+                container.Spline.Evaluate(t, out var pos, out _, out _);
+                pts.Add(container.transform.TransformPoint((Vector3)pos));
+            }
+
+            return pts;
+        }
+
+        private bool IsStreetSplineUnderBoulevardCorridor(
+            SplineContainer street,
+            float streetLength,
+            IReadOnlyList<Vector3> boulevardWorldPolyline,
+            float boulevardHalfWidth)
+        {
+            if (streetLength < 2.5f || boulevardWorldPolyline == null || boulevardWorldPolyline.Count < 2)
+            {
+                return false;
+            }
+
+            var streetExtruder = street.GetComponent<RoadMeshExtruder>();
+            float streetHalfWidth = streetExtruder != null
+                ? RoadMeshExtruder.GetHalfWidth(RoadType.Street, _roadSettings) *
+                  Mathf.Max(0.01f, streetExtruder.WidthMultiplier)
+                : RoadMeshExtruder.GetHalfWidth(RoadType.Street, _roadSettings) * 1.25f;
+
+            const float extraPad = 2.5f;
+            float corridor = boulevardHalfWidth + streetHalfWidth + extraPad;
+
+            int k = Mathf.Clamp(Mathf.CeilToInt(streetLength / 3f), 14, 56);
+            int inside = 0;
+            for (int i = 0; i < k; i++)
+            {
+                float t = k == 1 ? 0f : i / (float)(k - 1);
+                street.Spline.Evaluate(t, out var pos, out _, out _);
+                Vector3 p = street.transform.TransformPoint((Vector3)pos);
+                if (MinDistancePointToPolylineXZ(p, boulevardWorldPolyline) <= corridor)
+                {
+                    inside++;
+                }
+            }
+
+            return inside / (float)k >= 0.82f;
+        }
+
+        private static float MinDistancePointToPolylineXZ(Vector3 p, IReadOnlyList<Vector3> poly)
+        {
+            float best = float.MaxValue;
+            for (int i = 0; i < poly.Count - 1; i++)
+            {
+                float d = DistancePointToSegmentXZ(p, poly[i], poly[i + 1]);
+                if (d < best)
+                {
+                    best = d;
+                }
+            }
+
+            return best;
+        }
+
+        private static float DistancePointToSegmentXZ(Vector3 p, Vector3 a, Vector3 b)
+        {
+            Vector2 ap = new Vector2(p.x - a.x, p.z - a.z);
+            Vector2 ab = new Vector2(b.x - a.x, b.z - a.z);
+            float lenSq = ab.sqrMagnitude;
+            if (lenSq < 1e-8f)
+            {
+                return new Vector2(p.x - a.x, p.z - a.z).magnitude;
+            }
+
+            float t = Mathf.Clamp01(Vector2.Dot(ap, ab) / lenSq);
+            Vector2 q = new Vector2(a.x, a.z) + ab * t;
+            return Vector2.Distance(new Vector2(p.x, p.z), q);
         }
 
         private static Vector3 GetWorldPointOnSpline(SplineContainer container, float t)
@@ -424,10 +570,12 @@ namespace Assets.Scripts.Runtime.Road.Generators
 #endif
             Object.Destroy(go);
         }
+
         internal static void PruneAcuteEdgesOnlyAtHighDegreeIntersections(
             RoadGraph graph,
             float minAngleDegrees,
-            int minDegreeToPrune)
+            int minDegreeToPrune,
+            HashSet<string> neverPruneEdgeKeys = null)
         {
             var adj = new Dictionary<RoadNode, List<RoadEdge>>();
             foreach (var node in graph.Nodes)
@@ -467,8 +615,22 @@ namespace Assets.Scripts.Runtime.Road.Generators
                     {
                         if (Vector3.Angle(dirs[i].dir, dirs[j].dir) < minAngleDegrees)
                         {
-                            toRemove.Add(dirs[i].len < dirs[j].len
-                                ? dirs[i].edge : dirs[j].edge);
+                            RoadEdge candidate = dirs[i].len < dirs[j].len
+                                ? dirs[i].edge
+                                : dirs[j].edge;
+                            if (neverPruneEdgeKeys != null &&
+                                neverPruneEdgeKeys.Count > 0)
+                            {
+                                string key = RoadGraphKeyUtility.ToEdgeKey(
+                                    candidate.From.Position,
+                                    candidate.To.Position);
+                                if (neverPruneEdgeKeys.Contains(key))
+                                {
+                                    continue;
+                                }
+                            }
+
+                            toRemove.Add(candidate);
                         }
                     }
                 }
@@ -514,21 +676,35 @@ namespace Assets.Scripts.Runtime.Road.Generators
                     extruder.MeshVerticalOffset = _manager.RoadMeshVerticalOffset;
                 }
                 extruder.Rebuild();
-                if (_manager.GenerateStreetDecor &&
-                    (forceStreetDecor || type == RoadType.Street))
+                bool deferThisSpline =
+                    _deferStreetDecorActive &&
+                    _manager.GenerateStreetDecor &&
+                    (forceStreetDecor || type == RoadType.Street);
+
+                if (deferThisSpline)
                 {
-                    _manager.ReportGenerationProgress(
-                        "Placing props",
-                        Mathf.Lerp(0.895f, 0.905f, containers.Count <= 1 ? 1f : (float)i / (containers.Count - 1)));
+                    _deferredStreetDecor.Add((container, type, widthMultiplier, forceStreetDecor));
                 }
-                StreetDecorationGenerator.AddDecorations(
-                    container,
-                    type,
-                    _manager,
-                    _roadSettings,
-                    widthMultiplier,
-                    forceStreetDecor,
-                    includeSidewalks: false);
+                else
+                {
+                    if (_manager.GenerateStreetDecor &&
+                        (forceStreetDecor || type == RoadType.Street))
+                    {
+                        _manager.ReportGenerationProgress(
+                            "Placing props",
+                            Mathf.Lerp(0.895f, 0.905f, containers.Count <= 1 ? 1f : (float)i / (containers.Count - 1)));
+                    }
+
+                    StreetDecorationGenerator.AddDecorations(
+                        container,
+                        type,
+                        _manager,
+                        _roadSettings,
+                        widthMultiplier,
+                        forceStreetDecor,
+                        includeSidewalks: false);
+                }
+
                 _generated.Add(container.gameObject);
                 ProcessOverlay(container, type);
             }
@@ -538,7 +714,6 @@ namespace Assets.Scripts.Runtime.Road.Generators
         {
             _overlay?.ProcessSpline(container, type);
         }
-
 
         private void PlaceMetroStations(SplineContainer container)
         {

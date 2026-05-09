@@ -39,16 +39,31 @@ namespace Assets.Scripts.Runtime.Road.Generators
             Func<SplineContainer, float, Vector3> getWorldPointOnSpline,
             Action<SplineContainer, RoadType> processOverlay,
             Action postCullOverlappingStreetSplines,
-            Action removePropsOnRoundabouts)
+            Action removePropsOnRoundabouts,
+            Action<SplineContainer, float> enqueueBoulevardStreetDecorOrNull = null)
         {
             _manager.ReportGenerationProgress("Optimizing road graph", 0.84f);
             Debug.Log($"[SplineRoadGenerator] {type} graph: {graph.Nodes.Count} nodes, " +
                       $"{graph.Edges.Count} edges.");
 
+            HashSet<string> boulevardPriorityEdgeKeys = null;
+            if (type == RoadType.Street &&
+                _manager.GenerateBoulevard &&
+                _manager.Nuclei != null &&
+                _manager.Nuclei.Length >= 2)
+            {
+                boulevardPriorityEdgeKeys = BoulevardGenerator.BuildPriorityEdgeKeys(
+                    graph,
+                    _manager.Nuclei,
+                    _manager.MetroBearingPenalty,
+                    _manager.BoulevardLineCount);
+            }
+
             SplineRoadGenerator.PruneAcuteEdgesOnlyAtHighDegreeIntersections(
                 graph,
                 _manager.MinRoadIntersectionAngleDegrees,
-                minDegreeToPrune: 5);
+                minDegreeToPrune: 5,
+                neverPruneEdgeKeys: boulevardPriorityEdgeKeys);
 
             int originalEdgeCount = graph.Edges.Count;
 
@@ -63,23 +78,15 @@ namespace Assets.Scripts.Runtime.Road.Generators
 
             _manager.ReportGenerationProgress("Extruding street meshes", 0.885f);
             var originalGraph = graph.SubgraphUpToEdge(originalEdgeCount);
-            HashSet<string> boulevardPriorityEdgeKeys = null;
             if (type == RoadType.Street &&
                 _manager.GenerateBoulevard &&
                 _manager.Nuclei != null &&
-                _manager.Nuclei.Length >= 2)
+                _manager.Nuclei.Length >= 2 &&
+                boulevardPriorityEdgeKeys != null &&
+                boulevardPriorityEdgeKeys.Count > 0)
             {
-                boulevardPriorityEdgeKeys = BoulevardGenerator.BuildPriorityEdgeKeys(
-                    graph,
-                    _manager.Nuclei,
-                    _manager.MetroBearingPenalty,
-                    _manager.BoulevardLineCount);
-
-                if (boulevardPriorityEdgeKeys.Count > 0)
-                {
-                    originalGraph.RetainEdges(e =>
-                        !boulevardPriorityEdgeKeys.Contains(RoadGraphKeyUtility.ToEdgeKey(e.From.Position, e.To.Position)));
-                }
+                originalGraph.RetainEdges(e =>
+                    !boulevardPriorityEdgeKeys.Contains(RoadGraphKeyUtility.ToEdgeKey(e.From.Position, e.To.Position)));
             }
 
             List<SplineContainer> containers = RoadSplineBuilder.BuildSplines(
@@ -143,13 +150,23 @@ namespace Assets.Scripts.Runtime.Road.Generators
                     extruder.MeshVerticalOffset = _manager.RoadMeshVerticalOffset;
                     extruder.LaneCount = 4;
                     extruder.Rebuild();
-                    StreetDecorationGenerator.AddDecorations(
-                        container,
-                        RoadType.Street,
-                        _manager,
-                        _roadSettings,
-                        _manager.BoulevardWidthMultiplier,
-                        includeSidewalks: false);
+                    if (enqueueBoulevardStreetDecorOrNull != null)
+                    {
+                        enqueueBoulevardStreetDecorOrNull(
+                            container,
+                            _manager.BoulevardWidthMultiplier);
+                    }
+                    else
+                    {
+                        StreetDecorationGenerator.AddDecorations(
+                            container,
+                            RoadType.Street,
+                            _manager,
+                            _roadSettings,
+                            _manager.BoulevardWidthMultiplier,
+                            includeSidewalks: false);
+                    }
+
                     _generated.Add(container.gameObject);
                     processOverlay(container, RoadType.Street);
                 }
