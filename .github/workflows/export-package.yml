@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  UNITY_VERSION: "6000.0.55f1"
+  UNITY_VERSION: "6000.3.6f1"
   PACKAGE_NAME: "ProceduralCityGenerator"
 
 jobs:
