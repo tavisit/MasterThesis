@@ -35,7 +35,6 @@ namespace Assets.Scripts.Runtime.Road.Generators
             RoadType type,
             Material material,
             Action<List<SplineContainer>, RoadType, Material, bool> spawnSplines,
-            Action<SplineContainer> removeOverlappingStreetSplineMesh,
             Func<SplineContainer, float, Vector3> getWorldPointOnSpline,
             Action<SplineContainer, RoadType> processOverlay,
             Action postCullOverlappingStreetSplines,
@@ -43,8 +42,6 @@ namespace Assets.Scripts.Runtime.Road.Generators
             Action<SplineContainer, float> enqueueBoulevardStreetDecorOrNull = null)
         {
             _manager.ReportGenerationProgress("Optimizing road graph", 0.84f);
-            Debug.Log($"[SplineRoadGenerator] {type} graph: {graph.Nodes.Count} nodes, " +
-                      $"{graph.Edges.Count} edges.");
 
             HashSet<string> boulevardPriorityEdgeKeys = null;
             if (type == RoadType.Street &&
@@ -65,6 +62,19 @@ namespace Assets.Scripts.Runtime.Road.Generators
                 minDegreeToPrune: 5,
                 neverPruneEdgeKeys: boulevardPriorityEdgeKeys);
 
+            HashSet<RoadNode> boulevardProtectedPathNodes = null;
+            if (type == RoadType.Street &&
+                _manager.GenerateBoulevard &&
+                _manager.Nuclei != null &&
+                _manager.Nuclei.Length >= 2)
+            {
+                boulevardProtectedPathNodes = BoulevardGenerator.CollectBoulevardPathNodes(
+                    graph,
+                    _manager.Nuclei,
+                    _manager.MetroBearingPenalty,
+                    _manager.BoulevardLineCount);
+            }
+
             int originalEdgeCount = graph.Edges.Count;
 
             List<RoadConnection> connectorEdges = RoadGraphConnector.ConnectComponents(
@@ -72,9 +82,8 @@ namespace Assets.Scripts.Runtime.Road.Generators
                 _manager.BridgeHeightThreshold,
                 _manager.TunnelHeightThreshold,
                 _manager.TerrainAdapter,
-                _manager.ConnectionsPerComponent);
-
-            Debug.Log($"[SplineRoadGenerator] {type}: added {connectorEdges.Count} connector edges.");
+                _manager.ConnectionsPerComponent,
+                boulevardProtectedPathNodes);
 
             _manager.ReportGenerationProgress("Extruding street meshes", 0.885f);
             var originalGraph = graph.SubgraphUpToEdge(originalEdgeCount);
@@ -136,7 +145,6 @@ namespace Assets.Scripts.Runtime.Road.Generators
                         "Placing boulevard props",
                         Mathf.Lerp(0.905f, 0.915f, boulevardContainers.Count <= 1 ? 1f : (float)i / (boulevardContainers.Count - 1)));
                     var container = boulevardContainers[i];
-                    removeOverlappingStreetSplineMesh(container);
                     container.gameObject.name = "RoadSpline_Boulevard";
                     var extruder = container.gameObject.AddComponent<RoadMeshExtruder>();
                     extruder.RoadType = RoadType.Street;
@@ -174,7 +182,7 @@ namespace Assets.Scripts.Runtime.Road.Generators
 
             if (type == RoadType.Street)
             {
-                _manager.ReportGenerationProgress("Culling overlapping road splines", 0.918f);
+                _manager.ReportGenerationProgress("Culling overlapping street splines", 0.918f);
                 postCullOverlappingStreetSplines();
                 _manager.ReportGenerationProgress("Smoothing street intersections", 0.9185f);
                 IntersectionRoundaboutGenerator.Spawn(
@@ -196,8 +204,6 @@ namespace Assets.Scripts.Runtime.Road.Generators
                     _generated);
                 removePropsOnRoundabouts();
             }
-
-            Debug.Log($"[SplineRoadGenerator] {type}: {containers.Count} splines generated.");
         }
     }
 }

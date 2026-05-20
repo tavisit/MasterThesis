@@ -153,4 +153,30 @@ public class RoadGraphTests
         Assert.AreEqual(1, graph.Nodes.Count);
         Assert.AreSame(a, graph.Nodes[0]);
     }
+
+    [Test]
+    public void RoadIntersectionExtractor_WithExcludeKeys_DoesNotCountThoseEdgesTowardDegree()
+    {
+        var graph = new RoadGraph();
+        RoadNode o = graph.AddNode(Vector3.zero, RoadType.Street);
+        RoadNode a = graph.AddNode(new Vector3(10f, 0f, 0f), RoadType.Street);
+        RoadNode b = graph.AddNode(new Vector3(-10f, 0f, 0f), RoadType.Street);
+        RoadNode c = graph.AddNode(new Vector3(0f, 0f, 10f), RoadType.Street);
+        graph.AddEdge(o, a, RoadType.Street);
+        graph.AddEdge(o, b, RoadType.Street);
+        graph.AddEdge(o, c, RoadType.Street);
+
+        var withoutExclude = RoadIntersectionExtractor.Extract(graph, 20f, null);
+        Assert.AreEqual(1, withoutExclude.Count);
+
+        var allKeys = new HashSet<string>
+        {
+            RoadGraphKeyUtility.ToEdgeKey(o.Position, a.Position),
+            RoadGraphKeyUtility.ToEdgeKey(o.Position, b.Position),
+            RoadGraphKeyUtility.ToEdgeKey(o.Position, c.Position),
+        };
+
+        var withAllExcluded = RoadIntersectionExtractor.Extract(graph, 20f, allKeys);
+        Assert.AreEqual(0, withAllExcluded.Count);
+    }
 }

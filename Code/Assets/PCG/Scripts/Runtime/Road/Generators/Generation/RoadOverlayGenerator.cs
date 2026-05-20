@@ -23,7 +23,6 @@ public sealed class RoadOverlayGenerator : MonoBehaviour
     [SerializeField] private float _metroArchWidthMultiplier = 1.8f;
     [SerializeField] private float _boulevardArchWidthMultiplier = 1.1f;
     [SerializeField] private float _tunnelEntryExtension = 10f;
-    [Tooltip("Inner vault height along world-up. Road width only scales the arch on the horizontal cross-axis (OX); slice depth scales along the spline (OZ).")]
     [SerializeField] private float _archVaultRise = 5f;
 
     [Header("Bridge")]

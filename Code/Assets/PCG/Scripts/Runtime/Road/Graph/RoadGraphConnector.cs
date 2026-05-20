@@ -36,10 +36,11 @@ namespace Assets.Scripts.Runtime.Graph
             float bridgeHeightThreshold = 8f,
             float tunnelHeightThreshold = 5f,
             TerrainAdapter terrain = null,
-            int connectionsPerComponent = 1)
+            int connectionsPerComponent = 1,
+            IReadOnlyCollection<RoadNode> protectSmallComponentsTouchingTheseNodes = null)
         {
             var connections = new List<RoadConnection>();
-            PruneSmallComponents(graph);
+            PruneSmallComponents(graph, protectSmallComponentsTouchingTheseNodes);
 
             var adj = BuildAdjacency(graph);
 
@@ -150,10 +151,6 @@ namespace Assets.Scripts.Runtime.Graph
 
                 connections.Add(new RoadConnection(bestA, bestB, connType));
 
-                Debug.Log($"[RoadGraphConnector] Stitched {bestI}({significant[bestI].Count}) " +
-                          $"-> {bestJ}({significant[bestJ].Count}) | " +
-                          $"dist={Vector3.Distance(bestA.Position, bestB.Position):F1} | type={connType}");
-
                 int newCount = Mathf.Max(
                     significant[bestI].Max(n => connCount.TryGetValue(n, out int c) ? c : 0),
                     significant[bestJ].Max(n => connCount.TryGetValue(n, out int c) ? c : 0)) + 1;
@@ -224,14 +221,26 @@ namespace Assets.Scripts.Runtime.Graph
             return true;
         }
 
-        private static void PruneSmallComponents(RoadGraph graph)
+        private static void PruneSmallComponents(
+            RoadGraph graph,
+            IReadOnlyCollection<RoadNode> protectComponentsTouchingTheseNodes = null)
         {
             var components = FindComponents(graph);
+
+            HashSet<RoadNode> protectSet = null;
+            if (protectComponentsTouchingTheseNodes != null && protectComponentsTouchingTheseNodes.Count > 0)
+            {
+                protectSet = new HashSet<RoadNode>(protectComponentsTouchingTheseNodes);
+            }
 
             var keepNodes = new HashSet<RoadNode>();
             foreach (var component in components)
             {
-                if (component.Count >= MinComponentSize)
+                bool keepLarge = component.Count >= MinComponentSize;
+                bool keepForBoulevard = protectSet != null &&
+                    component.Exists(n => protectSet.Contains(n));
+
+                if (keepLarge || keepForBoulevard)
                 {
                     foreach (var node in component)
                     {

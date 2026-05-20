@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 using Assets.Scripts.Runtime.Graph;
 
 using NUnit.Framework;
@@ -83,6 +85,38 @@ public class RoadGraphConnectorTests
         Assert.AreEqual(0, stitches.Count, "Small island is pruned; nothing significant to stitch.");
         Assert.AreEqual(10, graph.Nodes.Count);
         Assert.AreEqual(9, graph.Edges.Count);
+    }
+
+    [Test]
+    public void ConnectComponents_KeepsSmallIslandWhenProtectedNodeLivesInThatComponent()
+    {
+        var graph = BuildChain(Vector3.zero, 10, 10f);
+        AppendChain(graph, new Vector3(500f, 0f, 0f), 5, 10f);
+
+        RoadNode protect = null;
+        foreach (RoadNode n in graph.Nodes)
+        {
+            if (n.Position.x >= 500f)
+            {
+                protect = n;
+                break;
+            }
+        }
+
+        Assert.NotNull(protect);
+
+        var protectSet = new HashSet<RoadNode> { protect };
+        var stitches = RoadGraphConnector.ConnectComponents(
+            graph,
+            bridgeHeightThreshold: 8f,
+            tunnelHeightThreshold: 5f,
+            terrain: null,
+            connectionsPerComponent: 2,
+            protectSmallComponentsTouchingTheseNodes: protectSet);
+
+        Assert.AreEqual(0, stitches.Count, "Two islands remain disconnected; only one is >= MinComponentSize.");
+        Assert.AreEqual(15, graph.Nodes.Count, "Protected 5-node finger must not be pruned.");
+        Assert.AreEqual(13, graph.Edges.Count, "9 edges on main chain + 4 on preserved small chain.");
     }
 
     [Test]

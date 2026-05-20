@@ -29,6 +29,30 @@ namespace Assets.Scripts.Runtime.Road.Generators
             return edgeKeys;
         }
 
+        public static HashSet<RoadNode> CollectBoulevardPathNodes(
+            RoadGraph streetGraph,
+            CityNucleus[] nuclei,
+            float bearingPenaltyWeight,
+            int maxLines)
+        {
+            var nodes = new HashSet<RoadNode>();
+            if (streetGraph == null || nuclei == null || nuclei.Length < 2 || streetGraph.Nodes.Count == 0)
+            {
+                return nodes;
+            }
+
+            foreach (var path in BuildNucleusPaths(streetGraph, nuclei, bearingPenaltyWeight, maxLines))
+            {
+                foreach (var edge in path)
+                {
+                    nodes.Add(edge.From);
+                    nodes.Add(edge.To);
+                }
+            }
+
+            return nodes;
+        }
+
         public static List<SplineContainer> Generate(
             RoadGraph streetGraph,
             CityNucleus[] nuclei,
@@ -47,9 +71,7 @@ namespace Assets.Scripts.Runtime.Road.Generators
 
             foreach (var path in BuildNucleusPaths(streetGraph, nuclei, bearingPenaltyWeight, maxLines))
             {
-                RoadGraph pathGraph;
-                pathGraph = PathToChainGraph(path);
-
+                RoadGraph pathGraph = PathToChainGraph(path);
                 if (pathGraph == null || pathGraph.Edges.Count == 0)
                 {
                     continue;
@@ -163,26 +185,127 @@ namespace Assets.Scripts.Runtime.Road.Generators
                 return null;
             }
 
-            var chainNodes = new List<RoadNode> { path[0].From };
-            RoadNode current = path[0].From;
-            foreach (var edge in path)
+            List<RoadEdge> ordered = OrderPathEdgesIntoWalk(path, out RoadNode walkStart);
+            if (ordered == null)
             {
-                if (edge.From == current)
-                {
-                    current = edge.To;
-                }
-                else if (edge.To == current)
-                {
-                    current = edge.From;
-                }
-                else
+                ordered = path;
+                walkStart = ResolveWalkStart(path);
+            }
+
+            List<RoadNode> chainNodes = BuildChainNodeSequence(ordered, walkStart);
+            if (chainNodes == null && !ReferenceEquals(ordered, path))
+            {
+                walkStart = ResolveWalkStart(path);
+                chainNodes = BuildChainNodeSequence(path, walkStart);
+            }
+
+            if (chainNodes == null || chainNodes.Count < 2)
+            {
+                return null;
+            }
+
+            return ChainNodesToGraph(chainNodes);
+        }
+
+        private static List<RoadNode> BuildChainNodeSequence(IReadOnlyList<RoadEdge> orderedPath, RoadNode start)
+        {
+            if (orderedPath == null || orderedPath.Count == 0 || start == null)
+            {
+                return null;
+            }
+
+            var nodes = new List<RoadNode>(orderedPath.Count + 1) { start };
+            RoadNode current = start;
+            for (int i = 0; i < orderedPath.Count; i++)
+            {
+                RoadNode next = NextNodeOnEdge(orderedPath[i], current);
+                if (next == null)
                 {
                     return null;
                 }
 
-                chainNodes.Add(current);
+                nodes.Add(next);
+                current = next;
             }
 
+            return nodes;
+        }
+
+        private static RoadNode ResolveWalkStart(IReadOnlyList<RoadEdge> path)
+        {
+            if (path.Count == 1)
+            {
+                return path[0].From;
+            }
+
+            RoadEdge e0 = path[0];
+            RoadEdge e1 = path[1];
+            if (EdgeContainsNode(e1, e0.To))
+            {
+                return e0.From;
+            }
+
+            if (EdgeContainsNode(e1, e0.From))
+            {
+                return e0.To;
+            }
+
+            return FindPathEndpoint(path) ?? e0.From;
+        }
+
+        private static RoadNode FindPathEndpoint(IReadOnlyList<RoadEdge> path)
+        {
+            var degree = new Dictionary<RoadNode, int>();
+            foreach (var edge in path)
+            {
+                IncrementDegree(degree, edge.From);
+                IncrementDegree(degree, edge.To);
+            }
+
+            RoadNode endpoint = null;
+            int endpointCount = 0;
+            foreach (var pair in degree)
+            {
+                if (pair.Value != 1)
+                {
+                    continue;
+                }
+
+                endpointCount++;
+                endpoint = pair.Key;
+            }
+
+            return endpointCount == 1 || endpointCount == 2 ? endpoint : null;
+        }
+
+        private static void IncrementDegree(Dictionary<RoadNode, int> degree, RoadNode node)
+        {
+            degree.TryGetValue(node, out int count);
+            degree[node] = count + 1;
+        }
+
+        private static bool EdgeContainsNode(RoadEdge edge, RoadNode node)
+        {
+            return edge.From == node || edge.To == node;
+        }
+
+        private static RoadNode NextNodeOnEdge(RoadEdge edge, RoadNode current)
+        {
+            if (edge.From == current)
+            {
+                return edge.To;
+            }
+
+            if (edge.To == current)
+            {
+                return edge.From;
+            }
+
+            return null;
+        }
+
+        private static RoadGraph ChainNodesToGraph(IReadOnlyList<RoadNode> chainNodes)
+        {
             var g = new RoadGraph();
             RoadNode prev = g.AddNode(chainNodes[0].Position);
             for (int i = 1; i < chainNodes.Count; i++)
@@ -193,6 +316,88 @@ namespace Assets.Scripts.Runtime.Road.Generators
             }
 
             return g;
+        }
+
+        private static List<RoadEdge> OrderPathEdgesIntoWalk(IReadOnlyList<RoadEdge> path, out RoadNode walkStart)
+        {
+            walkStart = null;
+            var adj = new Dictionary<RoadNode, List<RoadEdge>>();
+            void AddAdj(RoadNode n, RoadEdge e)
+            {
+                if (!adj.TryGetValue(n, out var list))
+                {
+                    list = new List<RoadEdge>();
+                    adj[n] = list;
+                }
+
+                list.Add(e);
+            }
+
+            foreach (var e in path)
+            {
+                AddAdj(e.From, e);
+                AddAdj(e.To, e);
+            }
+
+            RoadNode leaf = FindPathEndpoint(path);
+            if (leaf == null)
+            {
+                leaf = path[0].From;
+            }
+
+            walkStart = leaf;
+
+            var used = new HashSet<RoadEdge>();
+            var ordered = new List<RoadEdge>(path.Count);
+            RoadNode cur = leaf;
+            RoadNode prev = null;
+            while (ordered.Count < path.Count)
+            {
+                RoadEdge pick = null;
+                if (adj.TryGetValue(cur, out var incident))
+                {
+                    foreach (var e in incident)
+                    {
+                        if (used.Contains(e))
+                        {
+                            continue;
+                        }
+
+                        RoadNode other = e.From == cur ? e.To : e.From;
+                        if (other == prev && incident.Count > 1)
+                        {
+                            continue;
+                        }
+
+                        pick = e;
+                        break;
+                    }
+
+                    if (pick == null)
+                    {
+                        foreach (var e in incident)
+                        {
+                            if (!used.Contains(e))
+                            {
+                                pick = e;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (pick == null)
+                {
+                    return null;
+                }
+
+                used.Add(pick);
+                ordered.Add(pick);
+                prev = cur;
+                cur = pick.From == cur ? pick.To : pick.From;
+            }
+
+            return ordered;
         }
 
     }

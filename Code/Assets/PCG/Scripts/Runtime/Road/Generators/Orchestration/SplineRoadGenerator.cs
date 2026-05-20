@@ -68,8 +68,6 @@ namespace Assets.Scripts.Runtime.Road.Generators
                         streetSolver, rows, columns, cellSize,
                         _manager.TerrainAdapter, RoadType.Street, SocketDefinitions.Road);
 
-                _manager.SetStreetIntersections(
-                    RoadIntersectionExtractor.Extract(streetGraph, _manager.MinRoadIntersectionAngleDegrees));
                 deferStreetDecorForMetro =
                     _manager.GenerateStreetDecor &&
                     _manager.GenerateMetro &&
@@ -79,6 +77,23 @@ namespace Assets.Scripts.Runtime.Road.Generators
                 _deferStreetDecorActive = deferStreetDecorForMetro;
                 ProcessGraph(streetGraph, RoadType.Street, null);
                 _deferStreetDecorActive = false;
+                HashSet<string> boulevardKeysForIntersections = null;
+                if (_manager.GenerateBoulevard &&
+                    _manager.Nuclei != null &&
+                    _manager.Nuclei.Length >= 2)
+                {
+                    boulevardKeysForIntersections = BoulevardGenerator.BuildPriorityEdgeKeys(
+                        streetGraph,
+                        _manager.Nuclei,
+                        _manager.MetroBearingPenalty,
+                        _manager.BoulevardLineCount);
+                }
+
+                _manager.SetStreetIntersections(
+                    RoadIntersectionExtractor.Extract(
+                        streetGraph,
+                        _manager.MinRoadIntersectionAngleDegrees,
+                        boulevardKeysForIntersections));
 
                 if (deferStreetDecorForMetro)
                 {
@@ -120,12 +135,6 @@ namespace Assets.Scripts.Runtime.Road.Generators
 
                 _manager.ReportGenerationProgress("Placing metro stations", 0.972f);
                 _manager.ReportGenerationProgress("Finalizing metro overlays", 0.98f);
-                Debug.Log($"[SplineRoadGenerator] Metro: {metroContainers.Count} lines generated.");
-            }
-            else if (_manager.GenerateMetro)
-            {
-                Debug.LogWarning("[SplineRoadGenerator] Metro skipped: requires streets " +
-                                 "and at least 2 nuclei to route through.");
             }
 
             if (deferStreetDecorForMetro)
@@ -137,8 +146,6 @@ namespace Assets.Scripts.Runtime.Road.Generators
             _manager.ReportGenerationProgress("Rebuilding sidewalks", 0.915f);
             StreetDecorationGenerator.RebuildAllSidewalks(_root, _manager, _roadSettings);
             _manager.ReportGenerationProgress("Placing props", 0.925f);
-
-            Debug.Log($"[SplineRoadGenerator] Done. Total objects: {_generated.Count}");
         }
 
         public void Clear()
@@ -157,7 +164,6 @@ namespace Assets.Scripts.Runtime.Road.Generators
                 type,
                 material,
                 (containers, rt, mat, forceDecor) => SpawnSplines(containers, rt, mat, forceDecor),
-                RemoveOverlappingStreetSplineMesh,
                 GetWorldPointOnSpline,
                 ProcessOverlay,
                 PostCullOverlappingStreetSplines,
@@ -199,155 +205,6 @@ namespace Assets.Scripts.Runtime.Road.Generators
             _deferredStreetDecor.Clear();
         }
 
-        private void RemoveOverlappingStreetSplineMesh(SplineContainer boulevard)
-        {
-            if (boulevard == null || boulevard.Spline == null)
-            {
-                return;
-            }
-
-            var toRemove = new List<GameObject>();
-            Vector3 bStart = GetWorldPointOnSpline(boulevard, 0f);
-            Vector3 bEnd = GetWorldPointOnSpline(boulevard, 1f);
-            Vector3 bMid = GetWorldPointOnSpline(boulevard, 0.5f);
-            float bLength = boulevard.Spline.GetLength();
-
-            IReadOnlyList<Vector3> boulevardWorldPolyline = BuildUniformWorldPolyline(boulevard, bLength);
-            float boulevardHalfWidth =
-                RoadMeshExtruder.GetHalfWidth(RoadType.Street, _roadSettings) *
-                Mathf.Max(0.01f, _manager.BoulevardWidthMultiplier);
-
-            foreach (var go in _generated)
-            {
-                if (go == null || go.name != "RoadSpline_Street")
-                {
-                    continue;
-                }
-
-                var street = go.GetComponent<SplineContainer>();
-                if (street == null || street.Spline == null)
-                {
-                    continue;
-                }
-
-                float sLength = street.Spline.GetLength();
-                if (Mathf.Abs(sLength - bLength) <= 1.0f)
-                {
-                    Vector3 sStart = GetWorldPointOnSpline(street, 0f);
-                    Vector3 sEnd = GetWorldPointOnSpline(street, 1f);
-                    Vector3 sMid = GetWorldPointOnSpline(street, 0.5f);
-
-                    bool sameDirection =
-                        Vector3.Distance(sStart, bStart) < 0.6f &&
-                        Vector3.Distance(sEnd, bEnd) < 0.6f;
-                    bool reverseDirection =
-                        Vector3.Distance(sStart, bEnd) < 0.6f &&
-                        Vector3.Distance(sEnd, bStart) < 0.6f;
-
-                    if ((sameDirection || reverseDirection) && Vector3.Distance(sMid, bMid) < 0.8f)
-                    {
-                        toRemove.Add(go);
-                        continue;
-                    }
-                }
-
-                if (IsStreetSplineUnderBoulevardCorridor(
-                        street,
-                        sLength,
-                        boulevardWorldPolyline,
-                        boulevardHalfWidth))
-                {
-                    toRemove.Add(go);
-                }
-            }
-
-            foreach (var go in toRemove)
-            {
-                DestroyGameObject(go);
-                _generated.Remove(go);
-            }
-        }
-
-        private static List<Vector3> BuildUniformWorldPolyline(SplineContainer container, float length)
-        {
-            int count = Mathf.Clamp(Mathf.CeilToInt(length / 4f), 16, 160);
-            var pts = new List<Vector3>(count);
-            for (int i = 0; i < count; i++)
-            {
-                float t = count == 1 ? 0f : i / (float)(count - 1);
-                container.Spline.Evaluate(t, out var pos, out _, out _);
-                pts.Add(container.transform.TransformPoint((Vector3)pos));
-            }
-
-            return pts;
-        }
-
-        private bool IsStreetSplineUnderBoulevardCorridor(
-            SplineContainer street,
-            float streetLength,
-            IReadOnlyList<Vector3> boulevardWorldPolyline,
-            float boulevardHalfWidth)
-        {
-            if (streetLength < 2.5f || boulevardWorldPolyline == null || boulevardWorldPolyline.Count < 2)
-            {
-                return false;
-            }
-
-            var streetExtruder = street.GetComponent<RoadMeshExtruder>();
-            float streetHalfWidth = streetExtruder != null
-                ? RoadMeshExtruder.GetHalfWidth(RoadType.Street, _roadSettings) *
-                  Mathf.Max(0.01f, streetExtruder.WidthMultiplier)
-                : RoadMeshExtruder.GetHalfWidth(RoadType.Street, _roadSettings) * 1.25f;
-
-            const float extraPad = 2.5f;
-            float corridor = boulevardHalfWidth + streetHalfWidth + extraPad;
-
-            int k = Mathf.Clamp(Mathf.CeilToInt(streetLength / 3f), 14, 56);
-            int inside = 0;
-            for (int i = 0; i < k; i++)
-            {
-                float t = k == 1 ? 0f : i / (float)(k - 1);
-                street.Spline.Evaluate(t, out var pos, out _, out _);
-                Vector3 p = street.transform.TransformPoint((Vector3)pos);
-                if (MinDistancePointToPolylineXZ(p, boulevardWorldPolyline) <= corridor)
-                {
-                    inside++;
-                }
-            }
-
-            return inside / (float)k >= 0.82f;
-        }
-
-        private static float MinDistancePointToPolylineXZ(Vector3 p, IReadOnlyList<Vector3> poly)
-        {
-            float best = float.MaxValue;
-            for (int i = 0; i < poly.Count - 1; i++)
-            {
-                float d = DistancePointToSegmentXZ(p, poly[i], poly[i + 1]);
-                if (d < best)
-                {
-                    best = d;
-                }
-            }
-
-            return best;
-        }
-
-        private static float DistancePointToSegmentXZ(Vector3 p, Vector3 a, Vector3 b)
-        {
-            Vector2 ap = new Vector2(p.x - a.x, p.z - a.z);
-            Vector2 ab = new Vector2(b.x - a.x, b.z - a.z);
-            float lenSq = ab.sqrMagnitude;
-            if (lenSq < 1e-8f)
-            {
-                return new Vector2(p.x - a.x, p.z - a.z).magnitude;
-            }
-
-            float t = Mathf.Clamp01(Vector2.Dot(ap, ab) / lenSq);
-            Vector2 q = new Vector2(a.x, a.z) + ab * t;
-            return Vector2.Distance(new Vector2(p.x, p.z), q);
-        }
-
         private static Vector3 GetWorldPointOnSpline(SplineContainer container, float t)
         {
             container.Spline.Evaluate(t, out var pos, out _, out _);
@@ -356,21 +213,10 @@ namespace Assets.Scripts.Runtime.Road.Generators
 
         private void PostCullOverlappingStreetSplines()
         {
-            var candidates = new List<(GameObject go, SplineContainer sc, int priority)>();
+            var candidates = new List<(GameObject go, SplineContainer sc)>();
             foreach (var go in _generated)
             {
-                if (go == null)
-                {
-                    continue;
-                }
-
-                int prio = go.name switch
-                {
-                    "RoadSpline_Boulevard" => 2,
-                    "RoadSpline_Street" => 1,
-                    _ => 0
-                };
-                if (prio == 0)
+                if (go == null || go.name != "RoadSpline_Street")
                 {
                     continue;
                 }
@@ -381,7 +227,7 @@ namespace Assets.Scripts.Runtime.Road.Generators
                     continue;
                 }
 
-                candidates.Add((go, sc, prio));
+                candidates.Add((go, sc));
             }
 
             if (candidates.Count < 2)
@@ -409,20 +255,9 @@ namespace Assets.Scripts.Runtime.Road.Generators
                         continue;
                     }
 
-                    if (candidates[i].priority > candidates[j].priority)
-                    {
-                        toDelete.Add(candidates[j].go);
-                    }
-                    else if (candidates[j].priority > candidates[i].priority)
-                    {
-                        toDelete.Add(candidates[i].go);
-                    }
-                    else
-                    {
-                        float li = candidates[i].sc.Spline.GetLength();
-                        float lj = candidates[j].sc.Spline.GetLength();
-                        toDelete.Add(li <= lj ? candidates[i].go : candidates[j].go);
-                    }
+                    float li = candidates[i].sc.Spline.GetLength();
+                    float lj = candidates[j].sc.Spline.GetLength();
+                    toDelete.Add(li <= lj ? candidates[i].go : candidates[j].go);
                 }
             }
 
@@ -430,11 +265,6 @@ namespace Assets.Scripts.Runtime.Road.Generators
             {
                 DestroyGameObject(go);
                 _generated.Remove(go);
-            }
-
-            if (toDelete.Count > 0)
-            {
-                Debug.Log($"[SplineRoadGenerator] Culled {toDelete.Count} overlapping street/boulevard splines.");
             }
         }
 
@@ -571,6 +401,17 @@ namespace Assets.Scripts.Runtime.Road.Generators
             Object.Destroy(go);
         }
 
+        private static bool EdgeIsBoulevardPriority(RoadEdge edge, HashSet<string> neverPruneEdgeKeys)
+        {
+            if (neverPruneEdgeKeys == null || neverPruneEdgeKeys.Count == 0 || edge == null)
+            {
+                return false;
+            }
+
+            return neverPruneEdgeKeys.Contains(
+                RoadGraphKeyUtility.ToEdgeKey(edge.From.Position, edge.To.Position));
+        }
+
         internal static void PruneAcuteEdgesOnlyAtHighDegreeIntersections(
             RoadGraph graph,
             float minAngleDegrees,
@@ -615,19 +456,28 @@ namespace Assets.Scripts.Runtime.Road.Generators
                     {
                         if (Vector3.Angle(dirs[i].dir, dirs[j].dir) < minAngleDegrees)
                         {
-                            RoadEdge candidate = dirs[i].len < dirs[j].len
-                                ? dirs[i].edge
-                                : dirs[j].edge;
-                            if (neverPruneEdgeKeys != null &&
-                                neverPruneEdgeKeys.Count > 0)
+                            RoadEdge eI = dirs[i].edge;
+                            RoadEdge eJ = dirs[j].edge;
+                            bool protectI = EdgeIsBoulevardPriority(eI, neverPruneEdgeKeys);
+                            bool protectJ = EdgeIsBoulevardPriority(eJ, neverPruneEdgeKeys);
+
+                            RoadEdge candidate;
+                            if (protectI && protectJ)
                             {
-                                string key = RoadGraphKeyUtility.ToEdgeKey(
-                                    candidate.From.Position,
-                                    candidate.To.Position);
-                                if (neverPruneEdgeKeys.Contains(key))
-                                {
-                                    continue;
-                                }
+                                continue;
+                            }
+
+                            if (protectI && !protectJ)
+                            {
+                                candidate = eJ;
+                            }
+                            else if (!protectI && protectJ)
+                            {
+                                candidate = eI;
+                            }
+                            else
+                            {
+                                candidate = dirs[i].len < dirs[j].len ? eI : eJ;
                             }
 
                             toRemove.Add(candidate);
@@ -638,7 +488,6 @@ namespace Assets.Scripts.Runtime.Road.Generators
 
             if (toRemove.Count > 0)
             {
-                Debug.Log($"[SplineRoadGenerator] Pruned {toRemove.Count} acute-angle edges at intersections with degree >= {minDegreeToPrune}.");
                 graph.RetainEdges(e => !toRemove.Contains(e));
             }
         }

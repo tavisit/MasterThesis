@@ -65,10 +65,8 @@ namespace Assets.Scripts.Runtime.City
         [SerializeField] private int _connectionsPerComponent = 2;
 
         [Header("Boulevard")]
-        [Tooltip("Surface boulevards routed between nuclei on a minimum spanning tree (about N-1 lines for N centers).")]
         [SerializeField] private bool _generateBoulevard = true;
         [SerializeField] private int _boulevardLineCount = 1;
-        [Tooltip("Road mesh width vs normal streets (1 = same half-width as RoadSettings). Use 2 for a double-width boulevard.")]
         [SerializeField] private float _boulevardWidthMultiplier = 2f;
 
         [Header("Metro")]

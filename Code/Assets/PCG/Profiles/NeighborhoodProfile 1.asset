@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: NeighborhoodProfile 1
   m_EditorClassIdentifier: Assets.Scripts.Runtime::Assets.Scripts.Runtime.City.NeighborhoodProfile
   RoadWidthMultiplier: 1
-  RoadMaterial: {fileID: 2100000, guid: 168efb5dc84dcdc4387d4111376c31e4, type: 2}
+  RoadMaterial: {fileID: 2100000, guid: 71d74876999d58a44b4b5697f95adbae, type: 2}
   BoulevardMaterial: {fileID: 2100000, guid: 71d74876999d58a44b4b5697f95adbae, type: 2}
   SidewalkMaterial: {fileID: 2100000, guid: cd2fabb2de9bf364fb56d7aac9b6ca1b, type: 2}
   SidewalkWidth: 1

@@ -20,7 +20,8 @@ namespace Assets.Scripts.Runtime.Graph
     {
         public static List<RoadIntersectionInfo> Extract(
             RoadGraph graph,
-            float minIntersectionAngleDegrees = 20f)
+            float minIntersectionAngleDegrees = 20f,
+            HashSet<string> excludeEdgeKeysFromDegree = null)
         {
             var result = new List<RoadIntersectionInfo>();
             if (graph == null || graph.Nodes == null || graph.Edges == null)
@@ -38,6 +39,14 @@ namespace Assets.Scripts.Runtime.Graph
             {
                 RoadEdge edge = graph.Edges[i];
                 if (edge == null || edge.From == null || edge.To == null)
+                {
+                    continue;
+                }
+
+                if (excludeEdgeKeysFromDegree != null &&
+                    excludeEdgeKeysFromDegree.Count > 0 &&
+                    excludeEdgeKeysFromDegree.Contains(
+                        RoadGraphKeyUtility.ToEdgeKey(edge.From.Position, edge.To.Position)))
                 {
                     continue;
                 }

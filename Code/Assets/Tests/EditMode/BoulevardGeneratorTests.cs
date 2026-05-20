@@ -90,4 +90,54 @@ public class BoulevardGeneratorTests
 
         Assert.Greater(keys.Count, 0, "Priority edge keys should be produced for boulevard routing.");
     }
+
+    [Test]
+    public void Generate_ReversedEdgeStorage_StillBuildsBoulevardSplines()
+    {
+        var graph = new RoadGraph();
+        RoadNode a = graph.AddNode(new Vector3(0f, 0f, 0f));
+        RoadNode b = graph.AddNode(new Vector3(10f, 0f, 0f));
+        RoadNode c = graph.AddNode(new Vector3(20f, 0f, 0f));
+        RoadNode d = graph.AddNode(new Vector3(30f, 0f, 0f));
+        graph.AddEdge(b, a);
+        graph.AddEdge(b, c);
+        graph.AddEdge(c, d);
+
+        var nuclei = new[]
+        {
+            new CityNucleus { Centre = new Vector2(0f, 0f), Radius = 50f, Strength = 1f },
+            new CityNucleus { Centre = new Vector2(30f, 0f), Radius = 50f, Strength = 1f },
+        };
+        var settings = ScriptableObject.CreateInstance<RoadSettings>();
+
+        var containers = BoulevardGenerator.Generate(
+            graph,
+            nuclei,
+            _root.transform,
+            settings,
+            UrbanMorphology.Grid,
+            bearingPenaltyWeight: 0.3f,
+            maxLines: 1);
+
+        Assert.AreEqual(1, containers.Count);
+    }
+
+    [Test]
+    public void Generate_FourNuclei_ProducesOneSplinePerBoulevardPath()
+    {
+        RoadGraph graph = BuildLongStreetLine();
+        CityNucleus[] nuclei = FourNucleiAlongStreet();
+        var settings = ScriptableObject.CreateInstance<RoadSettings>();
+
+        var containers = BoulevardGenerator.Generate(
+            graph,
+            nuclei,
+            _root.transform,
+            settings,
+            UrbanMorphology.Grid,
+            bearingPenaltyWeight: 0.3f,
+            maxLines: 1);
+
+        Assert.AreEqual(3, containers.Count, "Three MST boulevard paths should each produce one spline.");
+    }
 }
