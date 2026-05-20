@@ -1,3 +1,8 @@
+
+[![Unity Tests](https://github.com/tavisit/MasterThesis/actions/workflows/unity-tests.yml/badge.svg)](https://github.com/tavisit/MasterThesis/actions/workflows/unity-tests.yml)
+[![Format Check](https://github.com/tavisit/MasterThesis/actions/workflows/format-check.yml/badge.svg)](https://github.com/tavisit/MasterThesis/actions/workflows/format-check.yml)
+[![Export Unity Package](https://github.com/tavisit/MasterThesis/actions/workflows/export-package.yml/badge.svg)](https://github.com/tavisit/MasterThesis/actions/workflows/export-package.yml)
+
 # Master Thesis — Procedural city generation (Unity)
 
 **Constraint-based procedural city layout generation** using **Wave Function Collapse** in Unity (C#): street networks plus multi-layer transport (**streets**, **railways**, **metro**), with layouts that can respect **terrain** and **island-style** boundaries. Supports **grid** (planned-city style) and **organic** morphologies; tiles are solved with WFC, then **splines and meshes** approximate smooth, terrain-aware routes.
